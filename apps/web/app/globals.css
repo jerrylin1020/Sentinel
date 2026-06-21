@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0e1a;
+  --panel: #0f1422;
+  --panel-2: #131a2a;
+  --panel-3: #182137;
+  --border: #1e2638;
+  --border-light: #2a3349;
+  --text: #d4d8e0;
+  --text-dim: #7a839a;
+  --text-faint: #4a5266;
+  --up: #00d97e;
+  --down: #ff3b58;
+  --p1: #ff3b58;
+  --p2: #ffb627;
+  --cyan: #00b8d9;
+  --amber: #ffa502;
+  --purple: #b39ddb;
+  --blue: #4d8eff;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+/* pulse dot — system-online indicator */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--up);
+  box-shadow: 0 0 0 0 rgba(0, 217, 126, 0.6);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 217, 126, 0.6); }
+  70% { box-shadow: 0 0 0 6px rgba(0, 217, 126, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 217, 126, 0); }
+}

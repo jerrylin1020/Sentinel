@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "signals": "Signals",
+    "watchlist": "Watchlist",
+    "detail": "Detail",
+    "rules": "Rules"
+  },
+  "common": {
+    "lastScan": "Last scan",
+    "refresh": "Refresh"
+  }
+}

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RADAR — Signals</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a; --panel: #0f1422; --panel-2: #131a2a; --panel-3: #182137;
+    --border: #1e2638; --border-light: #2a3349;
+    --text: #d4d8e0; --text-dim: #7a839a; --text-faint: #4a5266;
+    --up: #00d97e; --down: #ff3b58; --p1: #ff3b58; --p2: #ffb627;
+    --cyan: #00b8d9; --amber: #ffa502; --purple: #b39ddb; --blue: #4d8eff;
+  }
+  html, body { background: var(--bg); color: var(--text); font-family: 'Inter','Noto Sans TC',system-ui,sans-serif; font-size: 14px; line-height: 1.45; }
+  .mono { font-family: 'JetBrains Mono',monospace; font-variant-numeric: tabular-nums; }
+  .panel { background: var(--panel); border: 1px solid var(--border); }
+  .panel-header { background: var(--panel-2); border-bottom: 1px solid var(--border); padding: 8px 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-dim); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+  html[lang="zh-TW"] .panel-header { letter-spacing: 0.04em; text-transform: none; font-size: 13px; }
+  html[lang="zh-TW"] .nav-link, html[lang="zh-TW"] .filter-chip { letter-spacing: 0.04em; text-transform: none; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 2px; font-weight: 600; letter-spacing: 0.05em; }
+  .badge-p1 { background: rgba(255,59,88,0.15); color: var(--p1); border: 1px solid rgba(255,59,88,0.4); }
+  .badge-p2 { background: rgba(255,182,39,0.15); color: var(--p2); border: 1px solid rgba(255,182,39,0.4); }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 2px; font-weight: 500; display: inline-block; }
+  .tag-equity { background: rgba(77,142,255,0.15); color: var(--blue); }
+  .tag-crypto { background: rgba(255,165,2,0.15); color: var(--amber); }
+  .tag-volume { background: rgba(0,184,217,0.12); color: var(--cyan); }
+  .tag-breakout { background: rgba(255,165,2,0.12); color: var(--amber); }
+  .tag-flow { background: rgba(179,157,219,0.18); color: var(--purple); }
+  .tag-onchain { background: rgba(0,217,126,0.12); color: var(--up); }
+  .tag-news { background: rgba(77,142,255,0.15); color: var(--blue); }
+  .tag-tech { background: rgba(255,59,88,0.12); color: var(--p1); }
+  .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--up); box-shadow: 0 0 6px var(--up); }
+  .nav-link { padding: 6px 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; }
+  .nav-link:hover { color: var(--text); } .nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+  .lang-btn { padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-dim); cursor: pointer; border: 1px solid var(--border-light); background: var(--panel); }
+  .lang-btn.active { color: var(--cyan); border-color: var(--cyan); background: rgba(0,184,217,0.08); }
+  .lang-btn:first-child { border-radius: 2px 0 0 2px; border-right: none; }
+  .lang-btn:last-child { border-radius: 0 2px 2px 0; }
+  .input, .select { background: var(--bg); border: 1px solid var(--border-light); color: var(--text); padding: 6px 10px; font-size: 13px; border-radius: 2px; font-family: 'JetBrains Mono',monospace; }
+  .input:focus, .select:focus { outline: none; border-color: var(--cyan); }
+  .btn { padding: 6px 14px; font-size: 12px; font-weight: 600; border: 1px solid var(--border-light); background: var(--panel-2); color: var(--text); cursor: pointer; border-radius: 2px; }
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .stat-card { padding: 14px 16px; background: var(--panel); border: 1px solid var(--border); }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 4px; }
+  html[lang="zh-TW"] .stat-label { text-transform: none; font-size: 12px; letter-spacing: 0.04em; }
+  .stat-value { font-family: 'JetBrains Mono',monospace; font-size: 24px; font-weight: 700; }
+  .filter-chip {
+    padding: 4px 10px; font-size: 12px; border-radius: 12px; cursor: pointer;
+    background: var(--panel-2); border: 1px solid var(--border-light); color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .filter-chip:hover { color: var(--text); }
+  .filter-chip.active { background: rgba(0,184,217,0.12); border-color: var(--cyan); color: var(--cyan); }
+  .date-section { padding: 10px 16px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); background: var(--bg); border-bottom: 1px solid var(--border); }
+  html[lang="zh-TW"] .date-section { text-transform: none; font-size: 12px; letter-spacing: 0.04em; }
+  .signal-row { padding: 12px 16px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 80px 50px 100px 1fr 110px 90px 100px 80px; gap: 12px; align-items: center; cursor: pointer; }
+  .signal-row:hover { background: var(--panel-2); }
+  .signal-row.new::before { content: ''; position: absolute; left: 0; top: 0; width: 3px; height: 100%; background: var(--cyan); }
+  .signal-row { position: relative; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="panel border-l-0 border-r-0 border-t-0 flex items-center px-4 py-2 gap-6">
+  <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
+      <div class="pulse-dot"></div>
+      <span class="font-bold text-lg tracking-wider">RADAR</span>
+      <span class="text-[12px] mono text-[var(--text-faint)]">v0.1</span>
+    </div>
+    <nav class="flex items-center ml-4">
+      <a class="nav-link" data-en="Dashboard" data-zh="總覽">Dashboard</a>
+      <a class="nav-link active" data-en="Signals" data-zh="訊號">Signals</a>
+      <a class="nav-link" data-en="Watchlist" data-zh="觀察名單">Watchlist</a>
+      <a class="nav-link" data-en="Detail" data-zh="個股">Detail</a>
+      <a class="nav-link" data-en="Rules" data-zh="規則">Rules</a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 ml-auto">
+    <div class="flex">
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn active" data-lang="zh" onclick="setLang('zh')">繁中</button>
+    </div>
+  </div>
+</header>
+
+<main class="p-2 space-y-2">
+
+  <!-- STATS CARDS -->
+  <section class="grid grid-cols-5 gap-2">
+    <div class="stat-card">
+      <div class="stat-label" data-en="TOTAL TODAY" data-zh="今日合計">TOTAL TODAY</div>
+      <div class="stat-value">59</div>
+      <div class="text-[12px] text-[var(--text-dim)] mt-1"><span class="up">+12</span> <span data-en="vs yesterday" data-zh="與昨日比">vs yesterday</span></div>
+    </div>
+    <div class="stat-card border-l-2" style="border-left-color: var(--p1)">
+      <div class="stat-label" data-en="P1 ALERTS" data-zh="P1 告警">P1 ALERTS</div>
+      <div class="stat-value text-[var(--p1)]">12</div>
+      <div class="text-[12px] text-[var(--text-dim)] mt-1"><span data-en="9 acted · 3 new" data-zh="9 已處理 · 3 新進">9 acted · 3 new</span></div>
+    </div>
+    <div class="stat-card border-l-2" style="border-left-color: var(--p2)">
+      <div class="stat-label" data-en="P2 ALERTS" data-zh="P2 告警">P2 ALERTS</div>
+      <div class="stat-value text-[var(--p2)]">47</div>
+      <div class="text-[12px] text-[var(--text-dim)] mt-1"><span data-en="daily digest" data-zh="日報彙整">daily digest</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" data-en="UNIQUE SYMBOLS" data-zh="觸發標的數">UNIQUE SYMBOLS</div>
+      <div class="stat-value">34</div>
+      <div class="text-[12px] text-[var(--text-dim)] mt-1"><span>21 EQUITY · 13 CRYPTO</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label" data-en="AVG SCORE" data-zh="平均分數">AVG SCORE</div>
+      <div class="stat-value">6.4</div>
+      <div class="text-[12px] text-[var(--text-dim)] mt-1"><span class="up">+0.8</span> <span data-en="vs 7d avg" data-zh="vs 7 日均">vs 7d avg</span></div>
+    </div>
+  </section>
+
+  <!-- FILTERS -->
+  <section class="panel">
+    <div class="panel-header">
+      <span data-en="Filters" data-zh="篩選">Filters</span>
+      <button class="text-[var(--cyan)] hover:underline text-[11px]" data-en="Reset" data-zh="重設">Reset</button>
+    </div>
+    <div class="p-3 flex flex-wrap items-center gap-3">
+      <!-- severity -->
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] uppercase text-[var(--text-faint)]" data-en="severity" data-zh="等級">severity</span>
+        <button class="filter-chip active" data-en="ALL" data-zh="全部">ALL</button>
+        <button class="filter-chip">P1</button>
+        <button class="filter-chip">P2</button>
+      </div>
+      <span class="text-[var(--text-faint)]">|</span>
+      <!-- asset type -->
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] uppercase text-[var(--text-faint)]" data-en="type" data-zh="類型">type</span>
+        <button class="filter-chip active" data-en="ALL" data-zh="全部">ALL</button>
+        <button class="filter-chip" data-en="EQUITY" data-zh="美股">EQUITY</button>
+        <button class="filter-chip" data-en="CRYPTO" data-zh="加密">CRYPTO</button>
+      </div>
+      <span class="text-[var(--text-faint)]">|</span>
+      <!-- signal type -->
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] uppercase text-[var(--text-faint)]" data-en="trigger" data-zh="觸發">trigger</span>
+        <button class="filter-chip active" data-en="ANY" data-zh="任意">ANY</button>
+        <button class="filter-chip" data-en="VOLUME" data-zh="爆量">VOLUME</button>
+        <button class="filter-chip" data-en="BREAKOUT" data-zh="突破">BREAKOUT</button>
+        <button class="filter-chip" data-en="FLOW" data-zh="籌碼">FLOW</button>
+        <button class="filter-chip" data-en="ON-CHAIN" data-zh="鏈上">ON-CHAIN</button>
+        <button class="filter-chip" data-en="NEWS" data-zh="新聞">NEWS</button>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <input class="input" placeholder="🔍 Symbol" data-en-placeholder="🔍 Symbol" data-zh-placeholder="🔍 標的">
+        <select class="select">
+          <option data-en="Today" data-zh="今日">Today</option>
+          <option data-en="Last 24h" data-zh="過去 24 小時">Last 24h</option>
+          <option data-en="Last 7 days" data-zh="過去 7 日">Last 7 days</option>
+          <option data-en="This month" data-zh="本月">This month</option>
+        </select>
+        <select class="select">
+          <option data-en="Sort: Time ↓" data-zh="排序：時間 ↓">Sort: Time ↓</option>
+          <option data-en="Sort: Score ↓" data-zh="排序：分數 ↓">Sort: Score ↓</option>
+          <option data-en="Sort: Symbol" data-zh="排序：標的">Sort: Symbol</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIGNALS LIST -->
+  <section class="panel">
+    <div class="panel-header">
+      <span data-en="Signals · Today" data-zh="訊號 · 今日">Signals · Today</span>
+      <span class="mono text-[var(--text-faint)]">59 / 59</span>
+    </div>
+
+    <!-- table header -->
+    <div class="signal-row" style="background: var(--panel-2); padding: 8px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); cursor: default; font-weight: 600;">
+      <span data-en="TIME" data-zh="時間">TIME</span>
+      <span data-en="P" data-zh="等級">P</span>
+      <span data-en="SYMBOL" data-zh="標的">SYMBOL</span>
+      <span data-en="TRIGGERS" data-zh="觸發">TRIGGERS</span>
+      <span class="text-right" data-en="PRICE" data-zh="價格">PRICE</span>
+      <span class="text-right" data-en="CHG%" data-zh="漲跌%">CHG%</span>
+      <span data-en="CHANNELS" data-zh="推播">CHANNELS</span>
+      <span class="text-right" data-en="SCORE" data-zh="分數">SCORE</span>
+    </div>
+
+    <!-- TODAY GROUP -->
+    <div class="date-section flex items-center justify-between">
+      <span data-en="TODAY · JUN 21" data-zh="今日 · 6/21">TODAY · JUN 21</span>
+      <span class="mono normal-case text-[var(--text-faint)]">38 <span data-en="signals" data-zh="筆">signals</span></span>
+    </div>
+
+    <div class="signal-row new" onclick="">
+      <span class="mono text-[12px] text-[var(--text-dim)]">22:08:15</span>
+      <span class="badge badge-p1">P1</span>
+      <div>
+        <div class="font-bold mono">NVDA</div>
+        <div class="text-[11px] text-[var(--text-faint)]">NVIDIA</div>
+      </div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-volume" data-en="VOL 3.4x" data-zh="爆量 3.4x">VOL 3.4x</span>
+        <span class="tag tag-breakout" data-en="52W HIGH" data-zh="52 週高">52W HIGH</span>
+        <span class="tag tag-flow" data-en="INST BUY" data-zh="法人買">INST BUY</span>
+        <span class="tag tag-news" data-en="NEWS+" data-zh="利多">NEWS+</span>
+      </div>
+      <span class="text-right mono">$142.18</span>
+      <span class="text-right mono up">+5.42%</span>
+      <span><span class="tag tag-flow">TG</span> <span class="tag tag-onchain">📧</span></span>
+      <span class="text-right mono font-bold text-[var(--p1)]">9.2</span>
+    </div>
+
+    <div class="signal-row new">
+      <span class="mono text-[12px] text-[var(--text-dim)]">21:42:33</span>
+      <span class="badge badge-p1">P1</span>
+      <div><div class="font-bold mono">SOL</div><div class="text-[11px] text-[var(--text-faint)]">Solana</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-onchain" data-en="WHALE +$42M" data-zh="鯨魚 +$42M">WHALE +$42M</span>
+        <span class="tag tag-volume" data-en="VOL 5.1x" data-zh="爆量 5.1x">VOL 5.1x</span>
+        <span class="tag tag-tech" data-en="LONG GREEN" data-zh="長紅">LONG GREEN</span>
+      </div>
+      <span class="text-right mono">$182.45</span>
+      <span class="text-right mono up">+8.91%</span>
+      <span><span class="tag tag-flow">TG</span> <span class="tag tag-volume">LINE</span></span>
+      <span class="text-right mono font-bold text-[var(--p1)]">8.7</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">20:55:09</span>
+      <span class="badge badge-p1">P1</span>
+      <div><div class="font-bold mono">TSLA</div><div class="text-[11px] text-[var(--text-faint)]" data-en="Tesla" data-zh="特斯拉">Tesla</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-volume" data-en="VOL 4.2x" data-zh="爆量 4.2x">VOL 4.2x</span>
+        <span class="tag tag-tech" data-en="LONG RED" data-zh="長黑">LONG RED</span>
+        <span class="tag tag-flow" data-en="INST SELL" data-zh="法人賣">INST SELL</span>
+        <span class="tag tag-news" data-en="NEWS−" data-zh="利空">NEWS−</span>
+      </div>
+      <span class="text-right mono">$248.32</span>
+      <span class="text-right mono down">−6.14%</span>
+      <span><span class="tag tag-flow">TG</span></span>
+      <span class="text-right mono font-bold text-[var(--p1)]">8.4</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">19:28:41</span>
+      <span class="badge badge-p1">P1</span>
+      <div><div class="font-bold mono">ETH</div><div class="text-[11px] text-[var(--text-faint)]" data-en="Ethereum" data-zh="以太坊">Ethereum</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-onchain" data-en="OUTFLOW" data-zh="流出">OUTFLOW</span>
+        <span class="tag tag-flow" data-en="FUND SPIKE" data-zh="費率飆">FUND SPIKE</span>
+        <span class="tag tag-breakout" data-en="BB BREAK" data-zh="布林突破">BB BREAK</span>
+      </div>
+      <span class="text-right mono">$3,512</span>
+      <span class="text-right mono up">+1.87%</span>
+      <span><span class="tag tag-flow">TG</span> <span class="tag tag-volume">LINE</span> <span class="tag tag-onchain">📧</span></span>
+      <span class="text-right mono font-bold text-[var(--p1)]">8.1</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">18:12:55</span>
+      <span class="badge badge-p1">P1</span>
+      <div><div class="font-bold mono">AMD</div><div class="text-[11px] text-[var(--text-faint)]">AMD</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-volume" data-en="VOL 2.8x" data-zh="爆量 2.8x">VOL 2.8x</span>
+        <span class="tag tag-breakout" data-en="200MA BREAK" data-zh="突破年線">200MA BREAK</span>
+        <span class="tag tag-flow" data-en="CALL SWEEP" data-zh="買權異動">CALL SWEEP</span>
+      </div>
+      <span class="text-right mono">$168.92</span>
+      <span class="text-right mono up">+4.23%</span>
+      <span><span class="tag tag-flow">TG</span> <span class="tag tag-onchain">📧</span></span>
+      <span class="text-right mono font-bold text-[var(--p1)]">7.8</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">15:48:22</span>
+      <span class="badge badge-p2">P2</span>
+      <div><div class="font-bold mono">META</div><div class="text-[11px] text-[var(--text-faint)]">Meta</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-volume" data-en="VOL 2.1x" data-zh="爆量 2.1x">VOL 2.1x</span>
+        <span class="tag tag-flow" data-en="INST BUY" data-zh="法人買">INST BUY</span>
+      </div>
+      <span class="text-right mono">$582.14</span>
+      <span class="text-right mono up">+2.31%</span>
+      <span><span class="tag tag-flow">TG</span></span>
+      <span class="text-right mono font-bold text-[var(--p2)]">6.4</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">14:32:11</span>
+      <span class="badge badge-p2">P2</span>
+      <div><div class="font-bold mono">AVAX</div><div class="text-[11px] text-[var(--text-faint)]">Avalanche</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-volume" data-en="VOL 2.4x" data-zh="爆量 2.4x">VOL 2.4x</span>
+        <span class="tag tag-onchain" data-en="ACTIVE ADDR" data-zh="活躍地址">ACTIVE ADDR</span>
+      </div>
+      <span class="text-right mono">$38.21</span>
+      <span class="text-right mono up">+3.42%</span>
+      <span><span class="tag tag-flow">TG</span></span>
+      <span class="text-right mono font-bold text-[var(--p2)]">5.5</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">11:18:04</span>
+      <span class="badge badge-p2">P2</span>
+      <div><div class="font-bold mono">AAPL</div><div class="text-[11px] text-[var(--text-faint)]" data-en="Apple" data-zh="蘋果">Apple</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-tech">RSI−</span>
+        <span class="tag tag-news" data-en="NEWS0" data-zh="中性">NEWS0</span>
+      </div>
+      <span class="text-right mono">$218.40</span>
+      <span class="text-right mono down">−1.12%</span>
+      <span><span class="tag tag-onchain">📧</span></span>
+      <span class="text-right mono font-bold text-[var(--p2)]">5.8</span>
+    </div>
+
+    <!-- YESTERDAY GROUP -->
+    <div class="date-section flex items-center justify-between">
+      <span data-en="YESTERDAY · JUN 20" data-zh="昨日 · 6/20">YESTERDAY · JUN 20</span>
+      <span class="mono normal-case text-[var(--text-faint)]">21 <span data-en="signals" data-zh="筆">signals</span></span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">23:42:18</span>
+      <span class="badge badge-p1">P1</span>
+      <div><div class="font-bold mono">BTC</div><div class="text-[11px] text-[var(--text-faint)]" data-en="Bitcoin" data-zh="比特幣">Bitcoin</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-onchain">SOPR &gt; 1.05</span>
+        <span class="tag tag-flow" data-en="OI +18%" data-zh="未平倉 +18%">OI +18%</span>
+      </div>
+      <span class="text-right mono">$68,421</span>
+      <span class="text-right mono up">+2.14%</span>
+      <span><span class="tag tag-flow">TG</span> <span class="tag tag-volume">LINE</span></span>
+      <span class="text-right mono font-bold text-[var(--p1)]">7.6</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">16:55:00</span>
+      <span class="badge badge-p2">P2</span>
+      <div><div class="font-bold mono">GOOGL</div><div class="text-[11px] text-[var(--text-faint)]">Alphabet</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-news" data-en="NEWS+" data-zh="利多">NEWS+</span>
+      </div>
+      <span class="text-right mono">$184.22</span>
+      <span class="text-right mono up">+0.84%</span>
+      <span><span class="tag tag-onchain">📧</span></span>
+      <span class="text-right mono font-bold text-[var(--p2)]">4.9</span>
+    </div>
+
+    <div class="signal-row">
+      <span class="mono text-[12px] text-[var(--text-dim)]">09:18:33</span>
+      <span class="badge badge-p2">P2</span>
+      <div><div class="font-bold mono">LINK</div><div class="text-[11px] text-[var(--text-faint)]">Chainlink</div></div>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-tech">RSI−</span>
+      </div>
+      <span class="text-right mono">$17.21</span>
+      <span class="text-right mono down">−3.18%</span>
+      <span><span class="tag tag-flow">TG</span></span>
+      <span class="text-right mono font-bold text-[var(--p2)]">4.2</span>
+    </div>
+
+    <div class="p-4 text-center text-[12px] text-[var(--text-dim)]">
+      <button class="hover:text-[var(--cyan)]" data-en="↓ Load more" data-zh="↓ 載入更多">↓ Load more</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function setLang(lang) {
+    document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+    try { localStorage.setItem('radar-lang', lang); } catch (e) {}
+    document.querySelectorAll('[data-en]').forEach(el => {
+      const txt = lang === 'zh' ? el.dataset.zh : el.dataset.en;
+      if (txt && txt.includes('<br>')) el.innerHTML = txt;
+      else el.textContent = txt;
+    });
+    document.querySelectorAll('[data-en-placeholder]').forEach(el => {
+      const txt = lang === 'zh' ? el.dataset.zhPlaceholder : el.dataset.enPlaceholder;
+      el.setAttribute('placeholder', txt);
+    });
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  }
+  (function() {
+    let saved = 'zh';
+    try { saved = localStorage.getItem('radar-lang') || 'zh'; } catch (e) {}
+    setLang(saved);
+  })();
+</script>
+</body>
+</html>

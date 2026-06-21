@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RADAR — Market Anomaly Scanner</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #0f1422;
+    --panel-2: #131a2a;
+    --border: #1e2638;
+    --border-light: #2a3349;
+    --text: #d4d8e0;
+    --text-dim: #7a839a;
+    --text-faint: #4a5266;
+    --up: #00d97e;
+    --down: #ff3b58;
+    --p1: #ff3b58;
+    --p2: #ffb627;
+    --p3: #6b7588;
+    --cyan: #00b8d9;
+    --amber: #ffa502;
+    --purple: #b39ddb;
+    --blue: #4d8eff;
+  }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .panel { background: var(--panel); border: 1px solid var(--border); }
+  .panel-header {
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  html[lang="zh-TW"] .panel-header { letter-spacing: 0.04em; text-transform: none; font-size: 13px; }
+  html[lang="zh-TW"] .tab-btn { letter-spacing: 0.04em; text-transform: none; }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+  .p1-bar { background: var(--p1); width: 3px; }
+  .p2-bar { background: var(--p2); width: 3px; }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 2px; font-weight: 600; letter-spacing: 0.05em; }
+  .badge-p1 { background: rgba(255,59,88,0.15); color: var(--p1); border: 1px solid rgba(255,59,88,0.4); }
+  .badge-p2 { background: rgba(255,182,39,0.15); color: var(--p2); border: 1px solid rgba(255,182,39,0.4); }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 2px; font-weight: 500; letter-spacing: 0.03em; display: inline-block; }
+  .tag-volume { background: rgba(0,184,217,0.12); color: var(--cyan); }
+  .tag-breakout { background: rgba(255,165,2,0.12); color: var(--amber); }
+  .tag-flow { background: rgba(179,157,219,0.18); color: var(--purple); }
+  .tag-onchain { background: rgba(0,217,126,0.12); color: var(--up); }
+  .tag-news { background: rgba(77,142,255,0.15); color: var(--blue); }
+  .tag-tech { background: rgba(255,59,88,0.12); color: var(--p1); }
+  .blink { animation: blink 1.4s ease-in-out infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .heat-cell {
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .heat-cell:hover { border-color: var(--text); transform: scale(1.02); z-index: 10; position: relative; }
+  .signal-row:hover { background: var(--panel-2); }
+  .news-row:hover { background: var(--panel-2); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--up);
+    box-shadow: 0 0 6px var(--up);
+  }
+  table.dense { font-size: 13px; }
+  table.dense th { font-weight: 600; color: var(--text-dim); text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; background: var(--panel-2); position: sticky; top: 0; }
+  html[lang="zh-TW"] table.dense th { text-transform: none; font-size: 12px; letter-spacing: 0.04em; }
+  table.dense td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  table.dense tr:hover { background: var(--panel-2); }
+  .tab-btn { padding: 5px 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--cyan); }
+  .lang-btn { padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-dim); cursor: pointer; border: 1px solid var(--border-light); background: var(--panel); transition: all 0.15s; }
+  .lang-btn.active { color: var(--cyan); border-color: var(--cyan); background: rgba(0,184,217,0.08); }
+  .lang-btn:first-child { border-radius: 2px 0 0 2px; border-right: none; }
+  .lang-btn:last-child { border-radius: 0 2px 2px 0; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- ========== TOP STATUS BAR ========== -->
+<header class="panel border-l-0 border-r-0 border-t-0 flex items-center px-4 py-2 gap-6">
+  <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
+      <div class="pulse-dot"></div>
+      <span class="font-bold text-lg tracking-wider">RADAR</span>
+      <span class="text-[12px] mono text-[var(--text-faint)]">v0.1</span>
+    </div>
+    <div class="text-[12px] text-[var(--text-dim)] mono" data-en="MARKET SCANNER · LIVE" data-zh="市場掃描器 · 即時">MARKET SCANNER · LIVE</div>
+  </div>
+
+  <!-- scan stats -->
+  <div class="flex items-center gap-5 ml-4">
+    <div class="flex flex-col">
+      <span class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider" data-en="P1 today" data-zh="今日 P1">P1 today</span>
+      <span class="mono font-bold text-[var(--p1)] text-lg">12</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider" data-en="P2 today" data-zh="今日 P2">P2 today</span>
+      <span class="mono font-bold text-[var(--p2)] text-lg">47</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider" data-en="Scanned" data-zh="已掃描">Scanned</span>
+      <span class="mono font-bold text-lg">2,418</span>
+    </div>
+  </div>
+
+  <!-- market tickers -->
+  <div class="flex items-center gap-4 ml-auto mono">
+    <div class="flex items-center gap-1.5"><span class="text-[var(--text-dim)] text-[12px]">SPX</span><span class="font-semibold">5,847.21</span><span class="down text-[12px]">-0.42%</span></div>
+    <div class="flex items-center gap-1.5"><span class="text-[var(--text-dim)] text-[12px]">NDX</span><span class="font-semibold">20,914.55</span><span class="down text-[12px]">-0.78%</span></div>
+    <div class="flex items-center gap-1.5"><span class="text-[var(--text-dim)] text-[12px]">VIX</span><span class="font-semibold">17.82</span><span class="up text-[12px]">+3.21%</span></div>
+    <div class="flex items-center gap-1.5"><span class="text-[var(--text-dim)] text-[12px]">DXY</span><span class="font-semibold">104.12</span><span class="up text-[12px]">+0.18%</span></div>
+    <div class="flex items-center gap-1.5"><span class="text-[var(--text-dim)] text-[12px]">BTC</span><span class="font-semibold">68,421</span><span class="up text-[12px]">+2.14%</span></div>
+    <div class="flex items-center gap-1.5"><span class="text-[var(--text-dim)] text-[12px]">ETH</span><span class="font-semibold">3,512</span><span class="up text-[12px]">+1.87%</span></div>
+  </div>
+
+  <!-- last scan + refresh + lang -->
+  <div class="flex items-center gap-3 ml-2">
+    <div class="text-[12px] mono text-[var(--text-dim)]">
+      <span data-en="last scan" data-zh="上次掃描">last scan</span> <span class="text-[var(--text)]">22:14:03</span>
+    </div>
+    <button class="px-3 py-1 bg-[var(--panel-2)] border border-[var(--border-light)] text-[12px] uppercase tracking-wider hover:border-[var(--cyan)] hover:text-[var(--cyan)] transition-colors" data-en="↻ Refresh" data-zh="↻ 重新整理">↻ Refresh</button>
+    <div class="flex">
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn active" data-lang="zh" onclick="setLang('zh')">繁中</button>
+    </div>
+  </div>
+</header>
+
+<!-- ========== MAIN GRID ========== -->
+<main class="grid grid-cols-12 gap-2 p-2">
+
+  <!-- =========================== -->
+  <!-- P1 SIGNALS FEED (LEFT)     -->
+  <!-- =========================== -->
+  <section class="col-span-5 panel">
+    <div class="panel-header">
+      <span><span class="text-[var(--p1)]">●</span> <span data-en="P1 Live Signals Feed" data-zh="P1 即時訊號">P1 Live Signals Feed</span></span>
+      <span class="mono text-[var(--text-faint)]" data-en="last 24h" data-zh="過去 24 小時">last 24h</span>
+    </div>
+
+    <div class="overflow-y-auto" style="max-height: 640px;">
+      <!-- signal 1 -->
+      <div class="signal-row flex border-b border-[var(--border)]">
+        <div class="p1-bar"></div>
+        <div class="flex-1 p-3">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-p1">P1</span>
+              <span class="font-bold text-lg mono">NVDA</span>
+              <span class="text-[var(--text-dim)] text-[12px]">NASDAQ</span>
+              <span class="mono text-[var(--text)] font-semibold">$142.18</span>
+              <span class="up mono text-[13px] font-semibold">+5.42%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] text-[var(--text-faint)] mono">22:08:15</span>
+              <span class="mono font-bold text-[var(--p1)] text-base">9.2</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+            <span class="tag tag-volume" data-en="VOLUME 3.4x" data-zh="爆量 3.4x">VOLUME 3.4x</span>
+            <span class="tag tag-breakout" data-en="BREAKOUT 52W HIGH" data-zh="突破 52 週高">BREAKOUT 52W HIGH</span>
+            <span class="tag tag-flow" data-en="INST BUY" data-zh="法人買超">INST BUY</span>
+            <span class="tag tag-news" data-en="NEWS+" data-zh="利多">NEWS+</span>
+          </div>
+          <svg viewBox="0 0 200 32" class="w-full h-8" preserveAspectRatio="none">
+            <polyline points="0,22 12,21 24,23 36,20 48,21 60,19 72,18 84,16 96,17 108,14 120,12 132,13 144,10 156,8 168,9 180,5 192,3 200,2" fill="none" stroke="#00d97e" stroke-width="1.5"/>
+            <polyline points="0,22 12,21 24,23 36,20 48,21 60,19 72,18 84,16 96,17 108,14 120,12 132,13 144,10 156,8 168,9 180,5 192,3 200,2 200,32 0,32" fill="url(#g1)" opacity="0.2"/>
+            <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#00d97e"/><stop offset="1" stop-color="#00d97e" stop-opacity="0"/></linearGradient></defs>
+          </svg>
+        </div>
+      </div>
+
+      <!-- signal 2 -->
+      <div class="signal-row flex border-b border-[var(--border)]">
+        <div class="p1-bar"></div>
+        <div class="flex-1 p-3">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-p1">P1</span>
+              <span class="font-bold text-lg mono">SOL</span>
+              <span class="text-[var(--text-dim)] text-[12px]">CRYPTO</span>
+              <span class="mono text-[var(--text)] font-semibold">$182.45</span>
+              <span class="up mono text-[13px] font-semibold">+8.91%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] text-[var(--text-faint)] mono">21:42:33</span>
+              <span class="mono font-bold text-[var(--p1)] text-base">8.7</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+            <span class="tag tag-onchain" data-en="WHALE INFLOW $42M" data-zh="鯨魚流入 $42M">WHALE INFLOW $42M</span>
+            <span class="tag tag-volume" data-en="VOLUME 5.1x" data-zh="爆量 5.1x">VOLUME 5.1x</span>
+            <span class="tag tag-tech" data-en="LONG GREEN CANDLE" data-zh="長紅 K">LONG GREEN CANDLE</span>
+          </div>
+          <svg viewBox="0 0 200 32" class="w-full h-8" preserveAspectRatio="none">
+            <polyline points="0,24 12,25 24,22 36,23 48,20 60,21 72,18 84,15 96,14 108,12 120,10 132,8 144,9 156,5 168,3 180,4 192,2 200,1" fill="none" stroke="#00d97e" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- signal 3 -->
+      <div class="signal-row flex border-b border-[var(--border)]">
+        <div class="p1-bar"></div>
+        <div class="flex-1 p-3">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-p1">P1</span>
+              <span class="font-bold text-lg mono">TSLA</span>
+              <span class="text-[var(--text-dim)] text-[12px]">NASDAQ</span>
+              <span class="mono text-[var(--text)] font-semibold">$248.32</span>
+              <span class="down mono text-[13px] font-semibold">-6.14%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] text-[var(--text-faint)] mono">20:55:09</span>
+              <span class="mono font-bold text-[var(--p1)] text-base">8.4</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+            <span class="tag tag-volume" data-en="VOLUME 4.2x" data-zh="爆量 4.2x">VOLUME 4.2x</span>
+            <span class="tag tag-tech" data-en="LONG RED CANDLE" data-zh="長黑 K">LONG RED CANDLE</span>
+            <span class="tag tag-flow" data-en="INST SELL" data-zh="法人賣超">INST SELL</span>
+            <span class="tag tag-news" data-en="NEWS−" data-zh="利空">NEWS−</span>
+          </div>
+          <svg viewBox="0 0 200 32" class="w-full h-8" preserveAspectRatio="none">
+            <polyline points="0,4 12,5 24,7 36,6 48,9 60,11 72,10 84,14 96,17 108,18 120,21 132,20 144,24 156,26 168,28 180,27 192,29 200,30" fill="none" stroke="#ff3b58" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- signal 4 -->
+      <div class="signal-row flex border-b border-[var(--border)]">
+        <div class="p1-bar"></div>
+        <div class="flex-1 p-3">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-p1">P1</span>
+              <span class="font-bold text-lg mono">ETH</span>
+              <span class="text-[var(--text-dim)] text-[12px]">CRYPTO</span>
+              <span class="mono text-[var(--text)] font-semibold">$3,512.40</span>
+              <span class="up mono text-[13px] font-semibold">+1.87%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] text-[var(--text-faint)] mono">19:28:41</span>
+              <span class="mono font-bold text-[var(--p1)] text-base">8.1</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+            <span class="tag tag-onchain" data-en="EXCHANGE OUTFLOW" data-zh="交易所流出">EXCHANGE OUTFLOW</span>
+            <span class="tag tag-flow" data-en="FUNDING SPIKE" data-zh="資金費率飆">FUNDING SPIKE</span>
+            <span class="tag tag-breakout" data-en="BB UPPER BREAK" data-zh="布林上軌突破">BB UPPER BREAK</span>
+          </div>
+          <svg viewBox="0 0 200 32" class="w-full h-8" preserveAspectRatio="none">
+            <polyline points="0,18 12,17 24,19 36,16 48,15 60,17 72,14 84,13 96,15 108,12 120,11 132,9 144,10 156,8 168,7 180,9 192,6 200,5" fill="none" stroke="#00d97e" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- signal 5 -->
+      <div class="signal-row flex border-b border-[var(--border)]">
+        <div class="p1-bar"></div>
+        <div class="flex-1 p-3">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-p1">P1</span>
+              <span class="font-bold text-lg mono">AMD</span>
+              <span class="text-[var(--text-dim)] text-[12px]">NASDAQ</span>
+              <span class="mono text-[var(--text)] font-semibold">$168.92</span>
+              <span class="up mono text-[13px] font-semibold">+4.23%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] text-[var(--text-faint)] mono">18:12:55</span>
+              <span class="mono font-bold text-[var(--p1)] text-base">7.8</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+            <span class="tag tag-volume" data-en="VOLUME 2.8x" data-zh="爆量 2.8x">VOLUME 2.8x</span>
+            <span class="tag tag-breakout" data-en="200MA BREAK" data-zh="突破 200 日線">200MA BREAK</span>
+            <span class="tag tag-flow" data-en="CALL SWEEP" data-zh="買權異動">CALL SWEEP</span>
+          </div>
+          <svg viewBox="0 0 200 32" class="w-full h-8" preserveAspectRatio="none">
+            <polyline points="0,20 12,21 24,18 36,19 48,16 60,17 72,14 84,15 96,12 108,13 120,10 132,11 144,8 156,9 168,6 180,7 192,4 200,3" fill="none" stroke="#00d97e" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- signal 6 -->
+      <div class="signal-row flex border-b border-[var(--border)]">
+        <div class="p1-bar"></div>
+        <div class="flex-1 p-3">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2">
+              <span class="badge badge-p1">P1</span>
+              <span class="font-bold text-lg mono">BTC</span>
+              <span class="text-[var(--text-dim)] text-[12px]">CRYPTO</span>
+              <span class="mono text-[var(--text)] font-semibold">$68,421</span>
+              <span class="up mono text-[13px] font-semibold">+2.14%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] text-[var(--text-faint)] mono">17:30:11</span>
+              <span class="mono font-bold text-[var(--p1)] text-base">7.6</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+            <span class="tag tag-onchain" data-en="SOPR > 1.05" data-zh="SOPR > 1.05">SOPR > 1.05</span>
+            <span class="tag tag-flow" data-en="OI SPIKE +18%" data-zh="未平倉爆增 +18%">OI SPIKE +18%</span>
+          </div>
+          <svg viewBox="0 0 200 32" class="w-full h-8" preserveAspectRatio="none">
+            <polyline points="0,22 12,20 24,21 36,18 48,19 60,16 72,17 84,15 96,16 108,13 120,12 132,14 144,10 156,11 168,8 180,9 192,7 200,6" fill="none" stroke="#00d97e" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================== -->
+  <!-- WATCHLIST (RIGHT)          -->
+  <!-- =========================== -->
+  <section class="col-span-7 panel">
+    <div class="panel-header">
+      <span data-en="Watchlist Performance" data-zh="觀察名單表現">Watchlist Performance</span>
+      <div class="flex items-center gap-3">
+        <div class="flex gap-1">
+          <span class="tab-btn active" data-en="ALL" data-zh="全部">ALL</span>
+          <span class="tab-btn" data-en="US EQUITY" data-zh="美股">US EQUITY</span>
+          <span class="tab-btn" data-en="CRYPTO" data-zh="加密貨幣">CRYPTO</span>
+        </div>
+        <span class="mono text-[var(--text-faint)]" data-en="sorted by score ↓" data-zh="依分數排序 ↓">sorted by score ↓</span>
+      </div>
+    </div>
+
+    <div class="overflow-y-auto" style="max-height: 640px;">
+      <table class="dense w-full">
+        <thead>
+          <tr>
+            <th data-en="SYMBOL" data-zh="標的">SYMBOL</th>
+            <th class="text-right" data-en="PRICE" data-zh="價格">PRICE</th>
+            <th class="text-right" data-en="CHG%" data-zh="漲跌%">CHG%</th>
+            <th class="text-right" data-en="VOL×" data-zh="量比">VOL×</th>
+            <th class="text-center" data-en="SIGNALS" data-zh="等級">SIGNALS</th>
+            <th class="text-right" data-en="SCORE" data-zh="分數">SCORE</th>
+            <th data-en="TRIGGERS" data-zh="觸發">TRIGGERS</th>
+          </tr>
+        </thead>
+        <tbody class="mono">
+          <tr>
+            <td><span class="font-bold">NVDA</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="NVIDIA Corp" data-zh="輝達">NVIDIA Corp</div></td>
+            <td class="text-right">142.18</td>
+            <td class="text-right up">+5.42%</td>
+            <td class="text-right">3.4×</td>
+            <td class="text-center"><span class="badge badge-p1">P1</span></td>
+            <td class="text-right font-bold text-[var(--p1)]">9.2</td>
+            <td><span class="tag tag-volume" data-en="VOL" data-zh="量">VOL</span> <span class="tag tag-breakout" data-en="BO" data-zh="突破">BO</span> <span class="tag tag-flow" data-en="INST" data-zh="法人">INST</span> <span class="tag tag-news" data-en="N+" data-zh="多">N+</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">SOL</span><div class="text-[11px] text-[var(--text-faint)] font-sans">Solana</div></td>
+            <td class="text-right">182.45</td>
+            <td class="text-right up">+8.91%</td>
+            <td class="text-right">5.1×</td>
+            <td class="text-center"><span class="badge badge-p1">P1</span></td>
+            <td class="text-right font-bold text-[var(--p1)]">8.7</td>
+            <td><span class="tag tag-onchain" data-en="WHALE" data-zh="鯨魚">WHALE</span> <span class="tag tag-volume" data-en="VOL" data-zh="量">VOL</span> <span class="tag tag-tech" data-en="CDL" data-zh="K棒">CDL</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">TSLA</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="Tesla Inc" data-zh="特斯拉">Tesla Inc</div></td>
+            <td class="text-right">248.32</td>
+            <td class="text-right down">−6.14%</td>
+            <td class="text-right">4.2×</td>
+            <td class="text-center"><span class="badge badge-p1">P1</span></td>
+            <td class="text-right font-bold text-[var(--p1)]">8.4</td>
+            <td><span class="tag tag-volume" data-en="VOL" data-zh="量">VOL</span> <span class="tag tag-tech" data-en="CDL" data-zh="K棒">CDL</span> <span class="tag tag-flow" data-en="SELL" data-zh="賣">SELL</span> <span class="tag tag-news" data-en="N−" data-zh="空">N−</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">ETH</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="Ethereum" data-zh="以太坊">Ethereum</div></td>
+            <td class="text-right">3,512.40</td>
+            <td class="text-right up">+1.87%</td>
+            <td class="text-right">2.2×</td>
+            <td class="text-center"><span class="badge badge-p1">P1</span></td>
+            <td class="text-right font-bold text-[var(--p1)]">8.1</td>
+            <td><span class="tag tag-onchain" data-en="OUTFLOW" data-zh="流出">OUTFLOW</span> <span class="tag tag-flow" data-en="FUND" data-zh="費率">FUND</span> <span class="tag tag-breakout" data-en="BB" data-zh="布林">BB</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">AMD</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="Advanced Micro Devices" data-zh="超微半導體">Advanced Micro Devices</div></td>
+            <td class="text-right">168.92</td>
+            <td class="text-right up">+4.23%</td>
+            <td class="text-right">2.8×</td>
+            <td class="text-center"><span class="badge badge-p1">P1</span></td>
+            <td class="text-right font-bold text-[var(--p1)]">7.8</td>
+            <td><span class="tag tag-volume" data-en="VOL" data-zh="量">VOL</span> <span class="tag tag-breakout" data-en="200MA" data-zh="年線">200MA</span> <span class="tag tag-flow" data-en="CALL" data-zh="買權">CALL</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">BTC</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="Bitcoin" data-zh="比特幣">Bitcoin</div></td>
+            <td class="text-right">68,421</td>
+            <td class="text-right up">+2.14%</td>
+            <td class="text-right">1.8×</td>
+            <td class="text-center"><span class="badge badge-p1">P1</span></td>
+            <td class="text-right font-bold text-[var(--p1)]">7.6</td>
+            <td><span class="tag tag-onchain">SOPR</span> <span class="tag tag-flow" data-en="OI" data-zh="未平倉">OI</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">META</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="Meta Platforms" data-zh="Meta">Meta Platforms</div></td>
+            <td class="text-right">582.14</td>
+            <td class="text-right up">+2.31%</td>
+            <td class="text-right">2.1×</td>
+            <td class="text-center"><span class="badge badge-p2">P2</span></td>
+            <td class="text-right font-bold text-[var(--p2)]">6.4</td>
+            <td><span class="tag tag-volume" data-en="VOL" data-zh="量">VOL</span> <span class="tag tag-flow" data-en="INST" data-zh="法人">INST</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">AAPL</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="Apple Inc" data-zh="蘋果">Apple Inc</div></td>
+            <td class="text-right">218.40</td>
+            <td class="text-right down">−1.12%</td>
+            <td class="text-right">1.5×</td>
+            <td class="text-center"><span class="badge badge-p2">P2</span></td>
+            <td class="text-right font-bold text-[var(--p2)]">5.8</td>
+            <td><span class="tag tag-tech">RSI−</span> <span class="tag tag-news" data-en="N0" data-zh="中">N0</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">AVAX</span><div class="text-[11px] text-[var(--text-faint)] font-sans">Avalanche</div></td>
+            <td class="text-right">38.21</td>
+            <td class="text-right up">+3.42%</td>
+            <td class="text-right">2.4×</td>
+            <td class="text-center"><span class="badge badge-p2">P2</span></td>
+            <td class="text-right font-bold text-[var(--p2)]">5.5</td>
+            <td><span class="tag tag-volume" data-en="VOL" data-zh="量">VOL</span> <span class="tag tag-onchain" data-en="ACT" data-zh="活躍">ACT</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">GOOGL</span><div class="text-[11px] text-[var(--text-faint)] font-sans">Alphabet</div></td>
+            <td class="text-right">184.22</td>
+            <td class="text-right up">+0.84%</td>
+            <td class="text-right">1.2×</td>
+            <td class="text-center"><span class="badge badge-p2">P2</span></td>
+            <td class="text-right font-bold text-[var(--p2)]">4.9</td>
+            <td><span class="tag tag-news" data-en="N+" data-zh="多">N+</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">LINK</span><div class="text-[11px] text-[var(--text-faint)] font-sans">Chainlink</div></td>
+            <td class="text-right">16.84</td>
+            <td class="text-right down">−2.18%</td>
+            <td class="text-right">1.1×</td>
+            <td class="text-center"><span class="text-[var(--text-faint)] text-[11px]">—</span></td>
+            <td class="text-right text-[var(--text-dim)]">3.2</td>
+            <td><span class="tag tag-tech">RSI−</span></td>
+          </tr>
+          <tr>
+            <td><span class="font-bold">MSFT</span><div class="text-[11px] text-[var(--text-faint)] font-sans" data-en="Microsoft" data-zh="微軟">Microsoft</div></td>
+            <td class="text-right">418.65</td>
+            <td class="text-right up">+0.42%</td>
+            <td class="text-right">0.9×</td>
+            <td class="text-center"><span class="text-[var(--text-faint)] text-[11px]">—</span></td>
+            <td class="text-right text-[var(--text-dim)]">2.1</td>
+            <td><span class="text-[var(--text-faint)]">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- =========================== -->
+  <!-- HEATMAP (FULL WIDTH)        -->
+  <!-- =========================== -->
+  <section class="col-span-12 panel">
+    <div class="panel-header">
+      <span data-en="Market Heatmap" data-zh="市場熱力圖">Market Heatmap</span>
+      <div class="flex items-center gap-3">
+        <div class="flex gap-1">
+          <span class="tab-btn active" data-en="US SECTORS" data-zh="美股產業">US SECTORS</span>
+          <span class="tab-btn" data-en="CRYPTO CATEGORIES" data-zh="加密類別">CRYPTO CATEGORIES</span>
+        </div>
+        <div class="flex items-center gap-2 text-[11px] mono text-[var(--text-dim)]">
+          <span>−5%</span>
+          <div class="w-32 h-2" style="background: linear-gradient(to right, #ff3b58, #4a5266, #00d97e);"></div>
+          <span>+5%</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-11 gap-px p-px" style="background: var(--border);">
+      <!-- Tech mega -->
+      <div class="heat-cell col-span-3 row-span-2 flex flex-col justify-between p-3" style="background: rgba(0,217,126,0.4);">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="font-bold text-xl" data-en="TECH" data-zh="科技">TECH</div>
+            <div class="text-[12px] text-[var(--text-dim)]" data-en="28 stocks" data-zh="28 檔">28 stocks</div>
+          </div>
+          <span class="badge badge-p1">3 P1</span>
+        </div>
+        <div class="mono text-3xl font-bold up">+2.84%</div>
+      </div>
+      <div class="heat-cell col-span-2 row-span-2 flex flex-col justify-between p-3" style="background: rgba(0,217,126,0.25);">
+        <div class="flex justify-between">
+          <div class="font-bold text-base" data-en="COMM<br>SVCS" data-zh="通訊<br>服務">COMM<br>SVCS</div>
+          <span class="badge badge-p2">2 P2</span>
+        </div>
+        <div class="mono text-2xl font-bold up">+1.62%</div>
+      </div>
+      <div class="heat-cell col-span-2 flex flex-col justify-between p-2" style="background: rgba(255,59,88,0.3);">
+        <div class="flex justify-between text-xs"><span class="font-bold" data-en="ENERGY" data-zh="能源">ENERGY</span><span class="badge badge-p1">P1</span></div>
+        <div class="mono text-lg font-bold down">−2.14%</div>
+      </div>
+      <div class="heat-cell col-span-2 flex flex-col justify-between p-2" style="background: rgba(255,59,88,0.4);">
+        <div class="flex justify-between text-xs"><span class="font-bold" data-en="CONS DISC" data-zh="非必需消費">CONS DISC</span><span class="badge badge-p1">P1</span></div>
+        <div class="mono text-lg font-bold down">−3.21%</div>
+      </div>
+      <div class="heat-cell col-span-2 flex flex-col justify-between p-2" style="background: rgba(0,217,126,0.15);">
+        <div class="flex justify-between text-xs"><span class="font-bold" data-en="FIN" data-zh="金融">FIN</span></div>
+        <div class="mono text-lg font-bold up">+0.84%</div>
+      </div>
+      <div class="heat-cell col-span-2 flex flex-col justify-between p-2" style="background: rgba(255,59,88,0.15);">
+        <div class="flex justify-between text-xs"><span class="font-bold" data-en="HEALTH" data-zh="醫療">HEALTH</span></div>
+        <div class="mono text-lg font-bold down">−0.62%</div>
+      </div>
+      <div class="heat-cell col-span-2 flex flex-col justify-between p-2" style="background: rgba(0,217,126,0.2);">
+        <div class="flex justify-between text-xs"><span class="font-bold" data-en="INDUST" data-zh="工業">INDUST</span><span class="badge badge-p2">P2</span></div>
+        <div class="mono text-lg font-bold up">+1.18%</div>
+      </div>
+      <div class="heat-cell col-span-2 flex flex-col justify-between p-2" style="background: rgba(74,82,102,0.4);">
+        <div class="flex justify-between text-xs"><span class="font-bold" data-en="UTIL" data-zh="公用">UTIL</span></div>
+        <div class="mono text-lg font-bold text-[var(--text-dim)]">+0.12%</div>
+      </div>
+      <div class="heat-cell col-span-2 flex flex-col justify-between p-2" style="background: rgba(255,59,88,0.2);">
+        <div class="flex justify-between text-xs"><span class="font-bold" data-en="MATERIALS" data-zh="原物料">MATERIALS</span></div>
+        <div class="mono text-lg font-bold down">−1.04%</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== -->
+  <!-- SIGNAL STATS (BOTTOM L)    -->
+  <!-- =========================== -->
+  <section class="col-span-5 panel">
+    <div class="panel-header">
+      <span data-en="Signal Type Breakdown · Today" data-zh="今日訊號類型分布">Signal Type Breakdown · Today</span>
+      <span class="mono text-[var(--text-faint)]"><span>59</span> <span data-en="total" data-zh="筆">total</span></span>
+    </div>
+    <div class="p-4 space-y-3">
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="flex items-center gap-2"><span class="w-2 h-2" style="background:var(--cyan)"></span><span class="text-[13px] font-medium" data-en="VOLUME SPIKE" data-zh="爆量">VOLUME SPIKE</span></span>
+          <span class="mono text-[13px] font-bold">18</span>
+        </div>
+        <div class="h-4 bg-[var(--panel-2)] relative">
+          <div class="h-full" style="background: var(--cyan); width: 80%;"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="flex items-center gap-2"><span class="w-2 h-2" style="background:var(--amber)"></span><span class="text-[13px] font-medium" data-en="TECHNICAL BREAKOUT" data-zh="技術面突破">TECHNICAL BREAKOUT</span></span>
+          <span class="mono text-[13px] font-bold">14</span>
+        </div>
+        <div class="h-4 bg-[var(--panel-2)] relative">
+          <div class="h-full" style="background: var(--amber); width: 62%;"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="flex items-center gap-2"><span class="w-2 h-2" style="background:var(--purple)"></span><span class="text-[13px] font-medium" data-en="INSTITUTIONAL FLOW" data-zh="法人動向">INSTITUTIONAL FLOW</span></span>
+          <span class="mono text-[13px] font-bold">11</span>
+        </div>
+        <div class="h-4 bg-[var(--panel-2)] relative">
+          <div class="h-full" style="background: var(--purple); width: 48%;"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="flex items-center gap-2"><span class="w-2 h-2" style="background:var(--up)"></span><span class="text-[13px] font-medium" data-en="ON-CHAIN ANOMALY" data-zh="鏈上異常">ON-CHAIN ANOMALY</span></span>
+          <span class="mono text-[13px] font-bold">9</span>
+        </div>
+        <div class="h-4 bg-[var(--panel-2)] relative">
+          <div class="h-full" style="background: var(--up); width: 40%;"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="flex items-center gap-2"><span class="w-2 h-2" style="background:var(--blue)"></span><span class="text-[13px] font-medium" data-en="NEWS / SENTIMENT" data-zh="新聞 / 情緒">NEWS / SENTIMENT</span></span>
+          <span class="mono text-[13px] font-bold">7</span>
+        </div>
+        <div class="h-4 bg-[var(--panel-2)] relative">
+          <div class="h-full" style="background: var(--blue); width: 30%;"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="flex items-center gap-2"><span class="w-2 h-2" style="background:var(--p1)"></span><span class="text-[13px] font-medium" data-en="CANDLE PATTERN" data-zh="K 棒型態">CANDLE PATTERN</span></span>
+          <span class="mono text-[13px] font-bold">5</span>
+        </div>
+        <div class="h-4 bg-[var(--panel-2)] relative">
+          <div class="h-full" style="background: var(--p1); width: 22%;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== -->
+  <!-- NEWS FEED (BOTTOM R)        -->
+  <!-- =========================== -->
+  <section class="col-span-7 panel">
+    <div class="panel-header">
+      <span><span class="text-[var(--blue)]">●</span> <span data-en="News & Events Feed · 24h" data-zh="新聞 / 事件 · 24 小時">News & Events Feed · 24h</span></span>
+      <span class="mono text-[var(--text-faint)]"><span>7</span> <span data-en="high-impact" data-zh="筆高影響">high-impact</span></span>
+    </div>
+    <div class="overflow-y-auto" style="max-height: 380px;">
+      <div class="news-row flex gap-3 p-3 border-b border-[var(--border)] items-start">
+        <div class="text-[11px] mono text-[var(--text-faint)] w-12 pt-0.5">22:08</div>
+        <span class="badge" style="background: rgba(0,217,126,0.15); color: var(--up); border: 1px solid rgba(0,217,126,0.4);" data-en="POS" data-zh="多">POS</span>
+        <span class="font-bold mono w-12">NVDA</span>
+        <div class="flex-1">
+          <div class="text-[14px]" data-en="NVIDIA announces partnership with major hyperscaler for next-gen Blackwell deployment" data-zh="輝達宣布與大型雲端業者合作，新世代 Blackwell 部署訂單到手">NVIDIA announces partnership with major hyperscaler for next-gen Blackwell deployment</div>
+          <div class="text-[12px] text-[var(--text-faint)] mt-0.5"><span>Reuters · </span><span data-en="sentiment +0.82" data-zh="情緒 +0.82">sentiment +0.82</span></div>
+        </div>
+      </div>
+      <div class="news-row flex gap-3 p-3 border-b border-[var(--border)] items-start">
+        <div class="text-[11px] mono text-[var(--text-faint)] w-12 pt-0.5">21:42</div>
+        <span class="badge" style="background: rgba(0,217,126,0.15); color: var(--up); border: 1px solid rgba(0,217,126,0.4);" data-en="POS" data-zh="多">POS</span>
+        <span class="font-bold mono w-12">SOL</span>
+        <div class="flex-1">
+          <div class="text-[14px]" data-en="Solana ETF filing rumours surface; major institutional inflows detected on-chain" data-zh="Solana ETF 申請傳聞浮現，鏈上偵測到大量法人資金流入">Solana ETF filing rumours surface; major institutional inflows detected on-chain</div>
+          <div class="text-[12px] text-[var(--text-faint)] mt-0.5"><span>CoinDesk · </span><span data-en="sentiment +0.71" data-zh="情緒 +0.71">sentiment +0.71</span></div>
+        </div>
+      </div>
+      <div class="news-row flex gap-3 p-3 border-b border-[var(--border)] items-start">
+        <div class="text-[11px] mono text-[var(--text-faint)] w-12 pt-0.5">20:55</div>
+        <span class="badge" style="background: rgba(255,59,88,0.15); color: var(--down); border: 1px solid rgba(255,59,88,0.4);" data-en="NEG" data-zh="空">NEG</span>
+        <span class="font-bold mono w-12">TSLA</span>
+        <div class="flex-1">
+          <div class="text-[14px]" data-en="Tesla Q2 delivery numbers reportedly tracking below consensus; analyst downgrades" data-zh="特斯拉 Q2 交車數據據傳低於預期，多家分析師下修評等">Tesla Q2 delivery numbers reportedly tracking below consensus; analyst downgrades</div>
+          <div class="text-[12px] text-[var(--text-faint)] mt-0.5"><span>Bloomberg · </span><span data-en="sentiment −0.68" data-zh="情緒 −0.68">sentiment −0.68</span></div>
+        </div>
+      </div>
+      <div class="news-row flex gap-3 p-3 border-b border-[var(--border)] items-start">
+        <div class="text-[11px] mono text-[var(--text-faint)] w-12 pt-0.5">19:28</div>
+        <span class="badge" style="background: rgba(0,217,126,0.15); color: var(--up); border: 1px solid rgba(0,217,126,0.4);" data-en="POS" data-zh="多">POS</span>
+        <span class="font-bold mono w-12">ETH</span>
+        <div class="flex-1">
+          <div class="text-[14px]" data-en="Ethereum spot ETF inflows hit weekly high; staking yields tick up to 4.2%" data-zh="以太坊現貨 ETF 周流入創新高，質押年化收益升至 4.2%">Ethereum spot ETF inflows hit weekly high; staking yields tick up to 4.2%</div>
+          <div class="text-[12px] text-[var(--text-faint)] mt-0.5"><span>The Block · </span><span data-en="sentiment +0.54" data-zh="情緒 +0.54">sentiment +0.54</span></div>
+        </div>
+      </div>
+      <div class="news-row flex gap-3 p-3 border-b border-[var(--border)] items-start">
+        <div class="text-[11px] mono text-[var(--text-faint)] w-12 pt-0.5">18:12</div>
+        <span class="badge" style="background: rgba(0,217,126,0.15); color: var(--up); border: 1px solid rgba(0,217,126,0.4);" data-en="POS" data-zh="多">POS</span>
+        <span class="font-bold mono w-12">AMD</span>
+        <div class="flex-1">
+          <div class="text-[14px]" data-en="AMD MI400 series benchmarks leaked, showing 1.4× perf improvement vs prior gen" data-zh="超微 MI400 系列效能跑分外流，較前代提升 1.4 倍">AMD MI400 series benchmarks leaked, showing 1.4× perf improvement vs prior gen</div>
+          <div class="text-[12px] text-[var(--text-faint)] mt-0.5"><span>SemiAnalysis · </span><span data-en="sentiment +0.62" data-zh="情緒 +0.62">sentiment +0.62</span></div>
+        </div>
+      </div>
+      <div class="news-row flex gap-3 p-3 border-b border-[var(--border)] items-start">
+        <div class="text-[11px] mono text-[var(--text-faint)] w-12 pt-0.5">15:30</div>
+        <span class="badge" style="background: rgba(122,131,154,0.15); color: var(--text-dim); border: 1px solid rgba(122,131,154,0.4);" data-en="NEU" data-zh="中">NEU</span>
+        <span class="font-bold mono w-12" data-en="MACRO" data-zh="總經">MACRO</span>
+        <div class="flex-1">
+          <div class="text-[14px]" data-en="FOMC June meeting minutes released; Fed signals data-dependent approach to cuts" data-zh="FOMC 6 月會議紀要公布，Fed 暗示降息將視數據而定">FOMC June meeting minutes released; Fed signals data-dependent approach to cuts</div>
+          <div class="text-[12px] text-[var(--text-faint)] mt-0.5"><span>Fed.gov · </span><span data-en="sentiment +0.04" data-zh="情緒 +0.04">sentiment +0.04</span></div>
+        </div>
+      </div>
+      <div class="news-row flex gap-3 p-3 items-start">
+        <div class="text-[11px] mono text-[var(--text-faint)] w-12 pt-0.5">13:48</div>
+        <span class="badge" style="background: rgba(255,59,88,0.15); color: var(--down); border: 1px solid rgba(255,59,88,0.4);" data-en="NEG" data-zh="空">NEG</span>
+        <span class="font-bold mono w-12">AAPL</span>
+        <div class="flex-1">
+          <div class="text-[14px]" data-en="EU regulator opens new DMA probe into Apple's App Store fees; potential fines loom" data-zh="歐盟監管機構就 App Store 抽成展開新一輪 DMA 調查，蘋果恐面臨罰款">EU regulator opens new DMA probe into Apple's App Store fees; potential fines loom</div>
+          <div class="text-[12px] text-[var(--text-faint)] mt-0.5"><span>FT · </span><span data-en="sentiment −0.51" data-zh="情緒 −0.51">sentiment −0.51</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="px-4 py-2 text-[11px] mono text-[var(--text-faint)] flex justify-between border-t border-[var(--border)]">
+  <span data-en="RADAR v0.1 · mockup with mock data · for design review only" data-zh="RADAR v0.1 · 假資料 mockup · 僅供設計檢視用">RADAR v0.1 · mockup with mock data · for design review only</span>
+  <span>2026-06-20 22:14:03 UTC</span>
+</footer>
+
+<script>
+  function setLang(lang) {
+    document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+    try { localStorage.setItem('radar-lang', lang); } catch (e) {}
+    document.querySelectorAll('[data-en]').forEach(el => {
+      const txt = lang === 'zh' ? el.dataset.zh : el.dataset.en;
+      // support <br> in heatmap labels
+      if (txt.includes('<br>')) {
+        el.innerHTML = txt;
+      } else {
+        el.textContent = txt;
+      }
+    });
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+  }
+  // initialize from saved preference (default: zh)
+  (function() {
+    let saved = 'zh';
+    try { saved = localStorage.getItem('radar-lang') || 'zh'; } catch (e) {}
+    setLang(saved);
+  })();
+</script>
+
+</body>
+</html>

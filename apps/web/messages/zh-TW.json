@@ -1,0 +1,13 @@
+{
+  "nav": {
+    "dashboard": "總覽",
+    "signals": "訊號",
+    "watchlist": "觀察名單",
+    "detail": "詳情",
+    "rules": "規則"
+  },
+  "common": {
+    "lastScan": "最後掃描",
+    "refresh": "重新整理"
+  }
+}

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RADAR — Rules</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a; --panel: #0f1422; --panel-2: #131a2a; --panel-3: #182137;
+    --border: #1e2638; --border-light: #2a3349;
+    --text: #d4d8e0; --text-dim: #7a839a; --text-faint: #4a5266;
+    --up: #00d97e; --down: #ff3b58; --p1: #ff3b58; --p2: #ffb627;
+    --cyan: #00b8d9; --amber: #ffa502; --purple: #b39ddb; --blue: #4d8eff;
+  }
+  html, body { background: var(--bg); color: var(--text); font-family: 'Inter','Noto Sans TC',system-ui,sans-serif; font-size: 14px; line-height: 1.45; }
+  .mono { font-family: 'JetBrains Mono',monospace; font-variant-numeric: tabular-nums; }
+  .panel { background: var(--panel); border: 1px solid var(--border); }
+  .panel-header { background: var(--panel-2); border-bottom: 1px solid var(--border); padding: 8px 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-dim); text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+  html[lang="zh-TW"] .panel-header { letter-spacing: 0.04em; text-transform: none; font-size: 13px; }
+  html[lang="zh-TW"] .nav-link, html[lang="zh-TW"] .cat-item { letter-spacing: 0.04em; text-transform: none; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 2px; font-weight: 600; }
+  .badge-on { background: rgba(0,217,126,0.15); color: var(--up); border: 1px solid rgba(0,217,126,0.4); }
+  .badge-off { background: rgba(122,131,154,0.15); color: var(--text-dim); border: 1px solid rgba(122,131,154,0.3); }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 2px; font-weight: 500; display: inline-block; }
+  .tag-volume { background: rgba(0,184,217,0.12); color: var(--cyan); }
+  .tag-breakout { background: rgba(255,165,2,0.12); color: var(--amber); }
+  .tag-flow { background: rgba(179,157,219,0.18); color: var(--purple); }
+  .tag-onchain { background: rgba(0,217,126,0.12); color: var(--up); }
+  .tag-news { background: rgba(77,142,255,0.15); color: var(--blue); }
+  .tag-tech { background: rgba(255,59,88,0.12); color: var(--p1); }
+  .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--up); box-shadow: 0 0 6px var(--up); }
+  .nav-link { padding: 6px 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase; }
+  .nav-link:hover { color: var(--text); } .nav-link.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+  .lang-btn { padding: 4px 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-dim); cursor: pointer; border: 1px solid var(--border-light); background: var(--panel); }
+  .lang-btn.active { color: var(--cyan); border-color: var(--cyan); background: rgba(0,184,217,0.08); }
+  .lang-btn:first-child { border-radius: 2px 0 0 2px; border-right: none; }
+  .lang-btn:last-child { border-radius: 0 2px 2px 0; }
+  .input { background: var(--bg); border: 1px solid var(--border-light); color: var(--text); padding: 6px 10px; font-size: 13px; border-radius: 2px; font-family: 'JetBrains Mono',monospace; }
+  .input:focus { outline: none; border-color: var(--cyan); }
+  .btn { padding: 6px 14px; font-size: 12px; font-weight: 600; border: 1px solid var(--border-light); background: var(--panel-2); color: var(--text); cursor: pointer; border-radius: 2px; }
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .btn-primary { background: var(--cyan); color: var(--bg); border-color: var(--cyan); }
+  .cat-item {
+    padding: 10px 14px; cursor: pointer; border-left: 3px solid transparent;
+    display: flex; justify-content: space-between; align-items: center; font-size: 13px;
+    transition: background 0.15s;
+  }
+  .cat-item:hover { background: var(--panel-2); }
+  .cat-item.active { background: var(--panel-3); border-left-color: var(--cyan); color: var(--text); }
+  .cat-item .count { font-family: 'JetBrains Mono',monospace; font-size: 11px; color: var(--text-faint); }
+  .cat-item.active .count { color: var(--cyan); }
+  .rule-card {
+    background: var(--panel); border: 1px solid var(--border); padding: 16px;
+    transition: border-color 0.15s;
+  }
+  .rule-card:hover { border-color: var(--border-light); }
+  .rule-card.enabled { border-left: 3px solid var(--up); }
+  .rule-card.disabled { opacity: 0.55; border-left: 3px solid var(--text-faint); }
+  .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: var(--border-light); border-radius: 10px; transition: 0.2s; }
+  .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; top: 3px; background: var(--text-dim); border-radius: 50%; transition: 0.2s; }
+  input:checked + .slider { background: rgba(0,217,126,0.3); }
+  input:checked + .slider:before { transform: translateX(16px); background: var(--up); }
+  input[type="range"] {
+    -webkit-appearance: none; width: 100%; height: 3px;
+    background: var(--border-light); border-radius: 2px; outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--cyan); cursor: pointer;
+    box-shadow: 0 0 6px rgba(0,184,217,0.5);
+  }
+  .param-row { display: grid; grid-template-columns: 200px 1fr 80px; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .param-row:last-child { border-bottom: none; }
+  .stat-mini { display: flex; flex-direction: column; }
+  .stat-mini .l { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
+  html[lang="zh-TW"] .stat-mini .l { text-transform: none; font-size: 11px; letter-spacing: 0.04em; }
+  .stat-mini .v { font-family: 'JetBrains Mono',monospace; font-size: 15px; font-weight: 600; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="panel border-l-0 border-r-0 border-t-0 flex items-center px-4 py-2 gap-6">
+  <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2">
+      <div class="pulse-dot"></div>
+      <span class="font-bold text-lg tracking-wider">RADAR</span>
+      <span class="text-[12px] mono text-[var(--text-faint)]">v0.1</span>
+    </div>
+    <nav class="flex items-center ml-4">
+      <a class="nav-link" data-en="Dashboard" data-zh="總覽">Dashboard</a>
+      <a class="nav-link" data-en="Signals" data-zh="訊號">Signals</a>
+      <a class="nav-link" data-en="Watchlist" data-zh="觀察名單">Watchlist</a>
+      <a class="nav-link" data-en="Detail" data-zh="個股">Detail</a>
+      <a class="nav-link active" data-en="Rules" data-zh="規則">Rules</a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-3 ml-auto">
+    <div class="flex">
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      <button class="lang-btn active" data-lang="zh" onclick="setLang('zh')">繁中</button>
+    </div>
+  </div>
+</header>
+
+<main class="grid grid-cols-12 gap-2 p-2" style="min-height: calc(100vh - 60px);">
+
+  <!-- LEFT: CATEGORIES -->
+  <aside class="col-span-2 panel">
+    <div class="panel-header">
+      <span data-en="Categories" data-zh="類別">Categories</span>
+    </div>
+    <div class="py-2">
+      <div class="cat-item active"><span data-en="All Rules" data-zh="全部規則">All Rules</span><span class="count">24</span></div>
+      <div class="cat-item"><span class="text-[var(--cyan)]" data-en="● Volume" data-zh="● 爆量">● Volume</span><span class="count">4</span></div>
+      <div class="cat-item"><span class="text-[var(--amber)]" data-en="● Technical" data-zh="● 技術">● Technical</span><span class="count">6</span></div>
+      <div class="cat-item"><span class="text-[var(--purple)]" data-en="● Inst. Flow" data-zh="● 法人籌碼">● Inst. Flow</span><span class="count">4</span></div>
+      <div class="cat-item"><span class="text-[var(--up)]" data-en="● On-chain" data-zh="● 鏈上">● On-chain</span><span class="count">5</span></div>
+      <div class="cat-item"><span class="text-[var(--blue)]" data-en="● News" data-zh="● 新聞">● News</span><span class="count">3</span></div>
+      <div class="cat-item"><span class="text-[var(--p1)]" data-en="● Composite" data-zh="● 複合">● Composite</span><span class="count">2</span></div>
+      <div class="border-t border-[var(--border)] mt-2 pt-2">
+        <div class="cat-item"><span data-en="My Custom" data-zh="自訂規則">My Custom</span><span class="count">3</span></div>
+        <div class="cat-item text-[var(--text-faint)]"><span data-en="Archived" data-zh="封存">Archived</span><span class="count">5</span></div>
+      </div>
+    </div>
+    <div class="p-3 border-t border-[var(--border)]">
+      <button class="btn btn-primary w-full" data-en="+ NEW RULE" data-zh="+ 新增規則">+ NEW RULE</button>
+    </div>
+  </aside>
+
+  <!-- MAIN: RULES -->
+  <section class="col-span-10 space-y-2">
+    <div class="panel">
+      <div class="panel-header">
+        <span><span data-en="All Rules" data-zh="全部規則">All Rules</span> · <span class="mono text-[var(--text)]">24</span></span>
+        <div class="flex items-center gap-2">
+          <input class="input" placeholder="🔍 Search rules" data-en-placeholder="🔍 Search rules" data-zh-placeholder="🔍 搜尋規則">
+          <button class="btn" data-en="📊 Backtest All" data-zh="📊 全部回測">📊 Backtest All</button>
+          <button class="btn" data-en="⇪ Export" data-zh="⇪ 匯出">⇪ Export</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RULE 1 -->
+    <div class="rule-card enabled">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-start gap-3">
+          <label class="switch mt-1"><input type="checkbox" checked><span class="slider"></span></label>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-lg" data-en="Volume Spike 2x+" data-zh="爆量 2x 以上">Volume Spike 2x+</span>
+              <span class="tag tag-volume" data-en="VOLUME" data-zh="爆量">VOLUME</span>
+              <span class="badge badge-on" data-en="ENABLED" data-zh="啟用中">ENABLED</span>
+            </div>
+            <div class="text-[12px] text-[var(--text-dim)]" data-en="Triggers when intraday volume exceeds 20-day moving average by configured multiplier" data-zh="當盤中成交量超過 20 日均量達設定倍數時觸發">Triggers when intraday volume exceeds 20-day moving average by configured multiplier</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn" data-en="✎ Edit" data-zh="✎ 編輯">✎ Edit</button>
+          <button class="btn" data-en="⧉ Clone" data-zh="⧉ 複製">⧉ Clone</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <!-- params -->
+        <div class="col-span-7">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-1" data-en="PARAMETERS" data-zh="參數">PARAMETERS</div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Volume multiplier" data-zh="量比倍數">Volume multiplier</span>
+            <input type="range" min="1.5" max="5" step="0.1" value="2.0">
+            <span class="mono text-base font-bold text-[var(--cyan)] text-right">2.0×</span>
+          </div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Lookback period (days)" data-zh="回看期間（日）">Lookback period (days)</span>
+            <input type="range" min="5" max="60" step="5" value="20">
+            <span class="mono text-base font-bold text-[var(--cyan)] text-right">20</span>
+          </div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Min price (USD)" data-zh="最低股價 (USD)">Min price (USD)</span>
+            <input type="range" min="0" max="100" step="5" value="5">
+            <span class="mono text-base font-bold text-[var(--cyan)] text-right">$5</span>
+          </div>
+        </div>
+        <!-- backtest stats -->
+        <div class="col-span-5 border-l border-[var(--border)] pl-4">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-2" data-en="BACKTEST · 2 YEARS" data-zh="回測 · 2 年">BACKTEST · 2 YEARS</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="stat-mini"><span class="l" data-en="WIN RATE" data-zh="勝率">WIN RATE</span><span class="v up">58.2%</span></div>
+            <div class="stat-mini"><span class="l" data-en="AVG RTN" data-zh="平均報酬">AVG RTN</span><span class="v up">+2.4%</span></div>
+            <div class="stat-mini"><span class="l" data-en="TRIGGERS/DAY" data-zh="日均觸發">TRIGGERS/DAY</span><span class="v">8.3</span></div>
+            <div class="stat-mini"><span class="l" data-en="FALSE +" data-zh="假訊號率">FALSE +</span><span class="v down">41.8%</span></div>
+            <div class="stat-mini"><span class="l" data-en="SHARPE" data-zh="夏普">SHARPE</span><span class="v">1.42</span></div>
+            <div class="stat-mini"><span class="l" data-en="LAST 7D" data-zh="近 7 日">LAST 7D</span><span class="v">38</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RULE 2 -->
+    <div class="rule-card enabled">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-start gap-3">
+          <label class="switch mt-1"><input type="checkbox" checked><span class="slider"></span></label>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-lg" data-en="52-Week High Breakout" data-zh="突破 52 週新高">52-Week High Breakout</span>
+              <span class="tag tag-breakout" data-en="TECHNICAL" data-zh="技術">TECHNICAL</span>
+              <span class="badge badge-on" data-en="ENABLED" data-zh="啟用中">ENABLED</span>
+            </div>
+            <div class="text-[12px] text-[var(--text-dim)]" data-en="Triggers when close price breaks above 52-week high with above-average volume" data-zh="當收盤價突破 52 週新高且成交量高於均量時觸發">Triggers when close price breaks above 52-week high with above-average volume</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn" data-en="✎ Edit" data-zh="✎ 編輯">✎ Edit</button>
+          <button class="btn" data-en="⧉ Clone" data-zh="⧉ 複製">⧉ Clone</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-7">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-1" data-en="PARAMETERS" data-zh="參數">PARAMETERS</div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Confirm with volume ≥" data-zh="須伴隨量比 ≥">Confirm with volume ≥</span>
+            <input type="range" min="1.0" max="3" step="0.1" value="1.5">
+            <span class="mono text-base font-bold text-[var(--cyan)] text-right">1.5×</span>
+          </div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Min break above (%)" data-zh="最低突破幅度 (%)">Min break above (%)</span>
+            <input type="range" min="0" max="5" step="0.1" value="0.5">
+            <span class="mono text-base font-bold text-[var(--cyan)] text-right">0.5%</span>
+          </div>
+        </div>
+        <div class="col-span-5 border-l border-[var(--border)] pl-4">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-2" data-en="BACKTEST · 2 YEARS" data-zh="回測 · 2 年">BACKTEST · 2 YEARS</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="stat-mini"><span class="l" data-en="WIN RATE" data-zh="勝率">WIN RATE</span><span class="v up">64.8%</span></div>
+            <div class="stat-mini"><span class="l" data-en="AVG RTN" data-zh="平均報酬">AVG RTN</span><span class="v up">+4.1%</span></div>
+            <div class="stat-mini"><span class="l" data-en="TRIGGERS/DAY" data-zh="日均觸發">TRIGGERS/DAY</span><span class="v">2.1</span></div>
+            <div class="stat-mini"><span class="l" data-en="FALSE +" data-zh="假訊號率">FALSE +</span><span class="v down">28.4%</span></div>
+            <div class="stat-mini"><span class="l" data-en="SHARPE" data-zh="夏普">SHARPE</span><span class="v">1.88</span></div>
+            <div class="stat-mini"><span class="l" data-en="LAST 7D" data-zh="近 7 日">LAST 7D</span><span class="v">14</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RULE 3 - Composite P1 -->
+    <div class="rule-card enabled" style="border-left-color: var(--p1);">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-start gap-3">
+          <label class="switch mt-1"><input type="checkbox" checked><span class="slider"></span></label>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-lg" data-en="P1 Composite Signal" data-zh="P1 複合訊號">P1 Composite Signal</span>
+              <span class="tag tag-tech" data-en="COMPOSITE" data-zh="複合">COMPOSITE</span>
+              <span class="badge badge-on" data-en="ENABLED" data-zh="啟用中">ENABLED</span>
+              <span class="text-[11px] text-[var(--text-faint)]" data-en="(3+ rules must fire)" data-zh="（須同時觸發 3 個以上規則）">(3+ rules must fire)</span>
+            </div>
+            <div class="text-[12px] text-[var(--text-dim)]" data-en="Promotes to P1 when score ≥ 7.5 and at least 3 atomic rules trigger within 30 minutes" data-zh="當分數 ≥ 7.5 且 30 分鐘內至少 3 個基礎規則同時觸發，升級為 P1">Promotes to P1 when score ≥ 7.5 and at least 3 atomic rules trigger within 30 minutes</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn" data-en="✎ Edit" data-zh="✎ 編輯">✎ Edit</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-7">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-1" data-en="PARAMETERS" data-zh="參數">PARAMETERS</div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Min composite score" data-zh="最低合流分數">Min composite score</span>
+            <input type="range" min="5" max="10" step="0.5" value="7.5">
+            <span class="mono text-base font-bold text-[var(--p1)] text-right">7.5</span>
+          </div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Min triggering rules" data-zh="最少觸發規則數">Min triggering rules</span>
+            <input type="range" min="2" max="6" step="1" value="3">
+            <span class="mono text-base font-bold text-[var(--p1)] text-right">3</span>
+          </div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Time window (min)" data-zh="時間窗口（分鐘）">Time window (min)</span>
+            <input type="range" min="5" max="120" step="5" value="30">
+            <span class="mono text-base font-bold text-[var(--p1)] text-right">30</span>
+          </div>
+        </div>
+        <div class="col-span-5 border-l border-[var(--border)] pl-4">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-2" data-en="BACKTEST · 2 YEARS" data-zh="回測 · 2 年">BACKTEST · 2 YEARS</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="stat-mini"><span class="l" data-en="WIN RATE" data-zh="勝率">WIN RATE</span><span class="v up">71.4%</span></div>
+            <div class="stat-mini"><span class="l" data-en="AVG RTN" data-zh="平均報酬">AVG RTN</span><span class="v up">+6.8%</span></div>
+            <div class="stat-mini"><span class="l" data-en="TRIGGERS/DAY" data-zh="日均觸發">TRIGGERS/DAY</span><span class="v">0.8</span></div>
+            <div class="stat-mini"><span class="l" data-en="FALSE +" data-zh="假訊號率">FALSE +</span><span class="v up">14.2%</span></div>
+            <div class="stat-mini"><span class="l" data-en="SHARPE" data-zh="夏普">SHARPE</span><span class="v up">2.64</span></div>
+            <div class="stat-mini"><span class="l" data-en="LAST 7D" data-zh="近 7 日">LAST 7D</span><span class="v">6</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RULE 4 - Disabled example -->
+    <div class="rule-card disabled">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-start gap-3">
+          <label class="switch mt-1"><input type="checkbox"><span class="slider"></span></label>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-lg" data-en="RSI Oversold Bounce" data-zh="RSI 超賣反彈">RSI Oversold Bounce</span>
+              <span class="tag tag-tech" data-en="TECHNICAL" data-zh="技術">TECHNICAL</span>
+              <span class="badge badge-off" data-en="DISABLED" data-zh="已停用">DISABLED</span>
+            </div>
+            <div class="text-[12px] text-[var(--text-dim)]" data-en="Triggers on RSI(14) cross above 30 after being below 30 for 2+ days" data-zh="當 RSI(14) 在低於 30 滿 2 日後向上突破 30 時觸發">Triggers on RSI(14) cross above 30 after being below 30 for 2+ days</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn" data-en="✎ Edit" data-zh="✎ 編輯">✎ Edit</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-7 text-[12px] text-[var(--text-dim)] italic" data-en="Disabled due to low win rate in last backtest (42.1%). Consider tuning RSI threshold or adding volume confirmation." data-zh="因近期回測勝率偏低（42.1%）而停用，可考慮調整 RSI 閾值或加入量能確認。">Disabled due to low win rate in last backtest (42.1%). Consider tuning RSI threshold or adding volume confirmation.</div>
+        <div class="col-span-5 border-l border-[var(--border)] pl-4">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-2" data-en="LAST BACKTEST" data-zh="上次回測">LAST BACKTEST</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="stat-mini"><span class="l" data-en="WIN RATE" data-zh="勝率">WIN RATE</span><span class="v down">42.1%</span></div>
+            <div class="stat-mini"><span class="l" data-en="AVG RTN" data-zh="平均報酬">AVG RTN</span><span class="v down">-0.4%</span></div>
+            <div class="stat-mini"><span class="l" data-en="FALSE +" data-zh="假訊號率">FALSE +</span><span class="v down">57.9%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RULE 5 -->
+    <div class="rule-card enabled">
+      <div class="flex items-start justify-between mb-3">
+        <div class="flex items-start gap-3">
+          <label class="switch mt-1"><input type="checkbox" checked><span class="slider"></span></label>
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-lg" data-en="Whale Wallet Inflow ≥ $10M" data-zh="鯨魚錢包流入 ≥ $10M">Whale Wallet Inflow ≥ $10M</span>
+              <span class="tag tag-onchain" data-en="ON-CHAIN" data-zh="鏈上">ON-CHAIN</span>
+              <span class="tag tag-flow" data-en="CRYPTO ONLY" data-zh="僅加密">CRYPTO ONLY</span>
+              <span class="badge badge-on" data-en="ENABLED" data-zh="啟用中">ENABLED</span>
+            </div>
+            <div class="text-[12px] text-[var(--text-dim)]" data-en="Triggers when wallets holding ≥ $50M move ≥ $10M from exchanges to cold storage in 1 hour" data-zh="當持有 ≥ $50M 的錢包在 1 小時內從交易所轉出 ≥ $10M 至冷錢包時觸發">Triggers when wallets holding ≥ $50M move ≥ $10M from exchanges to cold storage in 1 hour</div>
+          </div>
+        </div>
+        <button class="btn" data-en="✎ Edit" data-zh="✎ 編輯">✎ Edit</button>
+      </div>
+      <div class="grid grid-cols-12 gap-4">
+        <div class="col-span-7">
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Min inflow (USD)" data-zh="最低流入 (USD)">Min inflow (USD)</span>
+            <input type="range" min="1" max="100" step="1" value="10">
+            <span class="mono text-base font-bold text-[var(--cyan)] text-right">$10M</span>
+          </div>
+          <div class="param-row">
+            <span class="text-[12px]" data-en="Min whale wallet size" data-zh="鯨魚最低持有">Min whale wallet size</span>
+            <input type="range" min="10" max="500" step="10" value="50">
+            <span class="mono text-base font-bold text-[var(--cyan)] text-right">$50M</span>
+          </div>
+        </div>
+        <div class="col-span-5 border-l border-[var(--border)] pl-4">
+          <div class="text-[11px] uppercase text-[var(--text-faint)] tracking-wider mb-2" data-en="BACKTEST · 1 YEAR" data-zh="回測 · 1 年">BACKTEST · 1 YEAR</div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="stat-mini"><span class="l" data-en="WIN RATE" data-zh="勝率">WIN RATE</span><span class="v up">62.4%</span></div>
+            <div class="stat-mini"><span class="l" data-en="AVG RTN" data-zh="平均報酬">AVG RTN</span><span class="v up">+5.8%</span></div>
+            <div class="stat-mini"><span class="l" data-en="TRIGGERS/DAY" data-zh="日均觸發">TRIGGERS/DAY</span><span class="v">1.2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script>
+  function setLang(lang) {
+    document.documentElement.lang = lang === 'zh' ? 'zh-TW' : 'en';
+    try { localStorage.setItem('radar-lang', lang); } catch (e) {}
+    document.querySelectorAll('[data-en]').forEach(el => {
+      const txt = lang === 'zh' ? el.dataset.zh : el.dataset.en;
+      if (txt && txt.includes('<br>')) el.innerHTML = txt;
+      else el.textContent = txt;
+    });
+    document.querySelectorAll('[data-en-placeholder]').forEach(el => {
+      const txt = lang === 'zh' ? el.dataset.zhPlaceholder : el.dataset.enPlaceholder;
+      el.setAttribute('placeholder', txt);
+    });
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  }
+  (function() {
+    let saved = 'zh';
+    try { saved = localStorage.getItem('radar-lang') || 'zh'; } catch (e) {}
+    setLang(saved);
+  })();
+</script>
+</body>
+</html>
