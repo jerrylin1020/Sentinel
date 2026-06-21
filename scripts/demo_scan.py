@@ -39,7 +39,7 @@ def run() -> None:
 
             print(f"Scanning {sym.ticker}...")
             try:
-                candles = fetch_klines(sym.ticker, interval="1d", limit=50)
+                candles = fetch_klines(sym.ticker, interval="1d", limit=300)
             except Exception as exc:
                 print(f"  ! data fetch failed: {exc}")
                 continue

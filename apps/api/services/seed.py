@@ -53,6 +53,17 @@ def seed_watchlist(session: Session) -> None:
         )
     session.commit()
 
+    # Backfill: make sure existing watched symbols pick up newly added rules
+    # (union only — never removes a rule the user may have toggled off later).
+    all_rule_ids = set(registry.keys())
+    for w in session.exec(select(WatchedSymbol)).all():
+        current = set(w.enabled_rules or [])
+        missing = all_rule_ids - current
+        if missing:
+            w.enabled_rules = sorted(current | all_rule_ids)
+            session.add(w)
+    session.commit()
+
 
 def seed_all(session: Session) -> None:
     seed_rules(session)
