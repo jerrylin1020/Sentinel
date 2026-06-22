@@ -21,6 +21,7 @@ from apps.api.db import engine, init_db  # noqa: E402
 from apps.api.models import Severity, Signal, Symbol, WatchedSymbol  # noqa: E402
 from apps.api.services.seed import seed_all  # noqa: E402
 from packages.data.crypto.binance import fetch_klines  # noqa: E402
+from packages.data.equity.yahoo import fetch_candles  # noqa: E402
 from packages.notifier import telegram  # noqa: E402
 from packages.scanner.deduper import dedup_key  # noqa: E402
 from packages.scanner.engine import scan_symbol  # noqa: E402
@@ -34,12 +35,13 @@ def run() -> None:
         watched = session.exec(select(WatchedSymbol)).all()
         for w in watched:
             sym = session.get(Symbol, w.symbol_id)
-            if sym.asset_type.value != "crypto":
-                continue  # demo only fetches crypto live data
 
-            print(f"Scanning {sym.ticker}...")
+            print(f"Scanning {sym.ticker} ({sym.asset_type.value})...")
             try:
-                candles = fetch_klines(sym.ticker, interval="1d", limit=300)
+                if sym.asset_type.value == "crypto":
+                    candles = fetch_klines(sym.ticker, interval="1d", limit=300)
+                else:  # equity via Yahoo Finance
+                    candles = fetch_candles(sym.ticker, rng="2y", interval="1d")
             except Exception as exc:
                 print(f"  ! data fetch failed: {exc}")
                 continue

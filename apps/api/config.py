@@ -14,5 +14,9 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 
+    # Seed rules + watchlist on startup. Keep True for local/dev; set False on
+    # serverless (Vercel) where the DB is already seeded and cold starts are hot.
+    autoseed: bool = True
+
 
 settings = Settings()

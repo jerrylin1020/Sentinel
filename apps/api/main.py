@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session
 
+from apps.api.config import settings
 from apps.api.db import engine, init_db
 from apps.api.routers import rules, signals, watchlist
 from apps.api.services.seed import seed_all
@@ -11,9 +12,10 @@ from apps.api.services.seed import seed_all
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
-    with Session(engine) as session:
-        seed_all(session)
+    if settings.autoseed:
+        init_db()
+        with Session(engine) as session:
+            seed_all(session)
     yield
 
 
