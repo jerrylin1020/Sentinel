@@ -83,6 +83,20 @@ class Rule(SQLModel, table=True):
     enabled: bool = True
 
 
+class RuleBacktestStats(SQLModel, table=True):
+    rule_id: str = Field(foreign_key="rule.id", primary_key=True)
+    period: str = ""  # e.g. "1000d"
+    win_rate: float = 0.0
+    avg_return: float = 0.0
+    false_positive_rate: float = 0.0
+    sharpe: float = 0.0
+    triggers_per_day: float = 0.0
+    sample_triggers: int = 0
+    updated_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(DateTime(timezone=True))
+    )
+
+
 # --- Signals -----------------------------------------------------------------
 
 

@@ -2,14 +2,42 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from apps.api.db import get_session
-from apps.api.models import Rule
+from apps.api.models import Rule, RuleBacktestStats
 
 router = APIRouter(prefix="/rules", tags=["rules"])
 
 
 @router.get("")
 def list_rules(session: Session = Depends(get_session)):
-    return session.exec(select(Rule)).all()
+    out = []
+    for r in session.exec(select(Rule)).all():
+        stats = session.get(RuleBacktestStats, r.id)
+        out.append(
+            {
+                "id": r.id,
+                "name": r.name,
+                "category": r.category.value,
+                "description": r.description,
+                "applies_to": r.applies_to,
+                "weight": r.weight,
+                "params": r.params,
+                "enabled": r.enabled,
+                "backtest": (
+                    {
+                        "win_rate": stats.win_rate,
+                        "avg_return": stats.avg_return,
+                        "false_positive_rate": stats.false_positive_rate,
+                        "sharpe": stats.sharpe,
+                        "triggers_per_day": stats.triggers_per_day,
+                        "sample_triggers": stats.sample_triggers,
+                        "updated_at": stats.updated_at,
+                    }
+                    if stats
+                    else None
+                ),
+            }
+        )
+    return out
 
 
 @router.patch("/{rule_id}")

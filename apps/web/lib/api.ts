@@ -31,6 +31,16 @@ export interface ApiSignal {
   metrics: Record<string, Record<string, number>>;
 }
 
+export interface ApiBacktest {
+  win_rate: number;
+  avg_return: number;
+  false_positive_rate: number;
+  sharpe: number;
+  triggers_per_day: number;
+  sample_triggers: number;
+  updated_at: string;
+}
+
 export interface ApiRule {
   id: string;
   name: string;
@@ -40,6 +50,7 @@ export interface ApiRule {
   weight: number;
   params: Record<string, unknown>;
   enabled: boolean;
+  backtest: ApiBacktest | null;
 }
 
 export interface ApiWatched {
