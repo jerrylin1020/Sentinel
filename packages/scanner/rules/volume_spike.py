@@ -9,7 +9,7 @@ from packages.shared.types import Candle, RuleHit
 
 @rule(
     id="volume_spike_2x",
-    name="Volume Spike 2x+",
+    name="Volume Spike",
     category="volume",
     description="Latest volume exceeds N x the trailing average volume.",
     applies_to=["equity", "crypto"],

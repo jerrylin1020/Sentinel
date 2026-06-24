@@ -132,10 +132,12 @@ function Row({
           <input type="number" step="0.5" value={threshold} onChange={(e) => { setThreshold(+e.target.value); setSaved(false); }}
             className="w-20 rounded border border-border-light bg-panel-2 px-2 py-1" />
         </Field>
-        <Field label="量倍數">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs uppercase tracking-wider text-text-dim">量倍數</span>
           <input type="number" step="0.1" value={mult} onChange={(e) => { setMult(+e.target.value); setSaved(false); }}
             className="w-20 rounded border border-border-light bg-panel-2 px-2 py-1" />
-        </Field>
+          <span className="text-[11px] text-text-faint">只影響 Volume Spike 規則</span>
+        </div>
         <Field label="推播">
           <div className="flex gap-2">
             {CHANNELS.map((c) => (

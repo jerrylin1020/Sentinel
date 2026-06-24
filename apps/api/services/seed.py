@@ -18,7 +18,15 @@ _STARTER_SYMBOLS = [
 
 def seed_rules(session: Session) -> None:
     for spec in registry.values():
-        if session.get(Rule, spec.id):
+        existing = session.get(Rule, spec.id)
+        if existing:
+            # Keep descriptive metadata in sync (e.g. renames); never touch
+            # user-tunable fields (weight / params / enabled).
+            existing.name = spec.name
+            existing.description = spec.description
+            existing.category = RuleCategory(spec.category)
+            existing.applies_to = list(spec.applies_to)
+            session.add(existing)
             continue
         session.add(
             Rule(
