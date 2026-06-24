@@ -14,6 +14,27 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
+// --- Client-side mutations (called from "use client" components) ---
+export async function apiPost(path: string, body: unknown) {
+  return fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiPatch(path: string, body: unknown) {
+  return fetch(`${BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiDelete(path: string) {
+  return fetch(`${BASE}${path}`, { method: "DELETE" });
+}
+
 export type Severity = "p1" | "p2" | "observe";
 
 export interface ApiSignal {
