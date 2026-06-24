@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from sqlmodel import Session, select  # noqa: E402
 
 from apps.api.db import engine, init_db  # noqa: E402
-from apps.api.models import Severity, Signal, Symbol, WatchedSymbol  # noqa: E402
+from apps.api.models import Rule, Severity, Signal, Symbol, WatchedSymbol  # noqa: E402
 from apps.api.services.seed import seed_all  # noqa: E402
 from packages.data.crypto.binance import fetch_klines  # noqa: E402
 from packages.data.equity.yahoo import fetch_candles  # noqa: E402
@@ -31,6 +31,10 @@ def run() -> None:
     init_db()
     with Session(engine) as session:
         seed_all(session)
+
+        # Globally disabled rules (e.g. pruned by backtest) are excluded from
+        # every scan, regardless of a symbol's enabled_rules list.
+        disabled = {r.id for r in session.exec(select(Rule)).all() if not r.enabled}
 
         watched = session.exec(select(WatchedSymbol)).all()
         for w in watched:
@@ -46,11 +50,12 @@ def run() -> None:
                 print(f"  ! data fetch failed: {exc}")
                 continue
 
+            active_rules = [r for r in (w.enabled_rules or []) if r not in disabled]
             result = scan_symbol(
                 sym.ticker,
                 sym.asset_type.value,
                 candles,
-                enabled_rules=w.enabled_rules or None,
+                enabled_rules=active_rules or None,
                 params_overrides={"volume_spike_2x": {"multiplier": w.volume_multiplier}},
             )
 
