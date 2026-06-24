@@ -127,7 +127,7 @@ function Row({
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-end gap-4">
+      <div className="mt-3 flex flex-wrap items-start gap-4">
         <Field label="P1 門檻">
           <input type="number" step="0.5" value={threshold} onChange={(e) => { setThreshold(+e.target.value); setSaved(false); }}
             className="w-20 rounded border border-border-light bg-panel-2 px-2 py-1" />
