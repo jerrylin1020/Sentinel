@@ -57,6 +57,7 @@ def run() -> None:
                 candles,
                 enabled_rules=active_rules or None,
                 params_overrides={"volume_spike_2x": {"multiplier": w.volume_multiplier}},
+                p1_min_score=w.p1_score_threshold,
             )
 
             if not result.hits:
@@ -85,10 +86,14 @@ def run() -> None:
             session.commit()
             session.refresh(signal)
 
-            msg = telegram.format_signal(sym.ticker, result.score.severity, result.score.score, detail)
-            sent = telegram.send(msg)
-            print(f"  SIGNAL #{signal.id} [{result.score.severity}] score={result.score.score} "
-                  f"telegram={'sent' if sent else 'skipped (no creds)'}")
+            # Only P1/P2 push to Telegram; observe-level is recorded only (§5).
+            if result.score.severity in ("p1", "p2"):
+                msg = telegram.format_signal(sym.ticker, result.score.severity, result.score.score, detail)
+                sent = telegram.send(msg)
+                pushed = "sent" if sent else "skipped (no creds)"
+            else:
+                pushed = "not pushed (observe)"
+            print(f"  SIGNAL #{signal.id} [{result.score.severity}] score={result.score.score} telegram={pushed}")
             print(f"    {detail}")
 
 

@@ -24,6 +24,7 @@ def scan_symbol(
     candles: list[Candle],
     enabled_rules: list[str] | None = None,
     params_overrides: dict[str, dict] | None = None,
+    p1_min_score: float | None = None,
 ) -> ScanResult:
     params_overrides = params_overrides or {}
     hits: list[RuleHit] = []
@@ -37,4 +38,5 @@ def scan_symbol(
         if hit is not None:
             hits.append(hit)
 
-    return ScanResult(ticker=ticker, hits=hits, score=score_hits(hits))
+    score_kwargs = {} if p1_min_score is None else {"p1_min_score": p1_min_score}
+    return ScanResult(ticker=ticker, hits=hits, score=score_hits(hits, **score_kwargs))

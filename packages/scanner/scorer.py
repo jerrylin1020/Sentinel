@@ -24,7 +24,7 @@ class ScoreResult:
     components: dict
 
 
-def score_hits(hits: list[RuleHit]) -> ScoreResult:
+def score_hits(hits: list[RuleHit], p1_min_score: float = P1_MIN_SCORE) -> ScoreResult:
     if not hits:
         return ScoreResult(0.0, "observe", {})
 
@@ -43,7 +43,7 @@ def score_hits(hits: list[RuleHit]) -> ScoreResult:
 
     score = round(base, 2)
 
-    if score >= P1_MIN_SCORE and n >= P1_MIN_RULES:
+    if score >= p1_min_score and n >= P1_MIN_RULES:
         severity = "p1"
     elif any(h.severity in ("p1", "p2") for h in hits):
         severity = "p2"
