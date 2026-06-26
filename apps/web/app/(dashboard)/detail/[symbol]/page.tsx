@@ -1,6 +1,9 @@
+import { CandleChart, type ChartMarker } from "@/components/charts/CandleChart";
 import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, getSignals } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
+
+const markerColor: Record<string, string> = { p1: "#ff3b58", p2: "#ffb627", observe: "#7a839a" };
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleString("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -12,6 +15,14 @@ export default async function DetailPage({ params }: { params: { symbol: string 
   const related = all.filter((s) => s.ticker === symbol);
   const head = related[0];
 
+  const markers: ChartMarker[] = related.map((s) => ({
+    time: new Date(s.triggered_at).toISOString().slice(0, 10),
+    position: "aboveBar",
+    color: markerColor[s.severity] ?? "#7a839a",
+    shape: "circle",
+    text: s.severity.toUpperCase(),
+  }));
+
   return (
     <div className="space-y-4">
       <div className="flex items-end gap-4">
@@ -20,10 +31,8 @@ export default async function DetailPage({ params }: { params: { symbol: string 
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel title="K 線圖 (placeholder)" className="lg:col-span-2">
-          <div className="flex h-72 items-center justify-center rounded border border-dashed border-border-light text-text-faint">
-            Lightweight Charts 待接 — 訊號疊加
-          </div>
+        <Panel title="K 線圖 · 日線 (訊號疊加)" className="lg:col-span-2">
+          <CandleChart ticker={symbol} markers={markers} />
         </Panel>
 
         <Panel title={`觸發訊號 (${related.length})`}>

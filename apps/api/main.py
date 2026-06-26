@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from apps.api.config import settings
 from apps.api.db import engine, init_db
-from apps.api.routers import rules, signals, watchlist
+from apps.api.routers import candles, rules, signals, watchlist
 from apps.api.services.seed import seed_all
 
 
@@ -31,6 +31,7 @@ app.add_middleware(
 app.include_router(watchlist.router)
 app.include_router(rules.router)
 app.include_router(signals.router)
+app.include_router(candles.router)
 
 
 @app.get("/health")
