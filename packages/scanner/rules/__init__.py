@@ -4,6 +4,7 @@ from packages.scanner.rules.breakout_52w import breakout_52w  # noqa: F401
 from packages.scanner.rules.gap_up import gap_up  # noqa: F401
 from packages.scanner.rules.long_green_candle import long_green_candle  # noqa: F401
 from packages.scanner.rules.ma200_breakout import ma200_breakout  # noqa: F401
+from packages.scanner.rules.ma200w_proximity import ma200w_proximity  # noqa: F401
 from packages.scanner.rules.macd_cross import macd_cross  # noqa: F401
 from packages.scanner.rules.price_momentum import price_momentum  # noqa: F401
 from packages.scanner.rules.rsi_reversal import rsi_reversal  # noqa: F401

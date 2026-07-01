@@ -42,10 +42,12 @@ def run() -> None:
 
             print(f"Scanning {sym.ticker} ({sym.asset_type.value})...")
             try:
+                # Fetch long history so long-term rules (e.g. 200-week MA,
+                # 52-week breakout) have enough lookback.
                 if sym.asset_type.value == "crypto":
-                    candles = fetch_klines(sym.ticker, interval="1d", limit=300)
+                    candles = fetch_klines(sym.ticker, interval="1d", limit=1000)
                 else:  # equity via Yahoo Finance
-                    candles = fetch_candles(sym.ticker, rng="2y", interval="1d")
+                    candles = fetch_candles(sym.ticker, rng="5y", interval="1d")
             except Exception as exc:
                 print(f"  ! data fetch failed: {exc}")
                 continue
