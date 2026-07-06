@@ -37,6 +37,13 @@ export async function apiDelete(path: string) {
 
 export type Severity = "p1" | "p2" | "observe";
 
+export interface ApiSignalRule {
+  id: string;
+  name: string;
+  category: string;
+  detail: string;
+}
+
 export interface ApiSignal {
   id: number;
   ticker: string;
@@ -45,6 +52,7 @@ export interface ApiSignal {
   severity: Severity;
   score: number;
   tags: string[];
+  rules: ApiSignalRule[];
   price: number;
   triggered_at: string;
   status: string;

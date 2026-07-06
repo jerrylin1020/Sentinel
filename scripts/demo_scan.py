@@ -81,7 +81,10 @@ def run() -> None:
                 score_components=result.score.components,
                 price_at_trigger=primary.metrics.get("price", 0.0),
                 volume_multiplier=primary.metrics.get("volume_multiplier", 0.0),
-                extra={h.rule_id: h.metrics for h in result.hits},
+                # Keep the human-readable "why" (e.g. "Closed above upper Bollinger
+                # band (312.08)") alongside raw metrics so the UI can show exactly
+                # which rule fired and why, not just its category.
+                extra={h.rule_id: {"detail": h.detail, "metrics": h.metrics} for h in result.hits},
                 dedup_key=key,
             )
             session.add(signal)

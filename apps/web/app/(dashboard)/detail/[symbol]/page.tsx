@@ -47,13 +47,14 @@ export default async function DetailPage({ params }: { params: { symbol: string 
                     <span className="mono">{s.score.toFixed(1)}</span>
                     <span className="mono ml-auto text-text-faint">{fmtTime(s.triggered_at)}</span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {s.tags.map((t) => (
-                      <Tag key={t} className={categoryColor[t] ?? "text-text-dim border-border-light"}>
-                        {t}
-                      </Tag>
+                  <ul className="mt-2 space-y-1">
+                    {s.rules.map((r) => (
+                      <li key={r.id} className="flex items-start gap-2 text-xs">
+                        <Tag className={categoryColor[r.category] ?? "text-text-dim border-border-light"}>{r.name}</Tag>
+                        <span className="text-text-dim">{r.detail || "—"}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </li>
               ))}
             </ul>

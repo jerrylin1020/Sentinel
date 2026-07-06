@@ -24,7 +24,7 @@ export default async function SignalsPage() {
               <th className="py-2">Sev</th>
               <th>Ticker</th>
               <th>Score</th>
-              <th>Tags</th>
+              <th>Rules</th>
               <th className="text-right">Price</th>
               <th className="text-right">Time</th>
             </tr>
@@ -43,9 +43,9 @@ export default async function SignalsPage() {
                 <td className="mono">{s.score.toFixed(1)}</td>
                 <td>
                   <div className="flex flex-wrap gap-1">
-                    {s.tags.map((t) => (
-                      <Tag key={t} className={categoryColor[t] ?? "text-text-dim border-border-light"}>
-                        {t}
+                    {s.rules.map((r) => (
+                      <Tag key={r.id} className={categoryColor[r.category] ?? "text-text-dim border-border-light"} title={r.detail}>
+                        {r.name}
                       </Tag>
                     ))}
                   </div>
