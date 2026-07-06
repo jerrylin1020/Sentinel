@@ -14,6 +14,7 @@ from packages.shared.types import Candle, RuleHit
     description="Latest bar closes up with a body >= threshold of its open.",
     applies_to=["equity", "crypto"],
     weight=1.6,
+    timeframe="1d",
     default_params={"min_body_pct": 0.03},
 )
 def long_green_candle(candles: list[Candle], params: dict) -> RuleHit | None:

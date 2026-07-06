@@ -44,3 +44,21 @@ def macd(closes: list[float], fast: int = 12, slow: int = 26, signal: int = 9):
     macd_line = [f - s for f, s in zip(ema_fast, ema_slow)]
     signal_line = ema(macd_line, signal)
     return macd_line, signal_line
+
+
+def stochastic_k(highs: list[float], lows: list[float], closes: list[float], period: int = 14) -> list[float]:
+    """Fast stochastic %K series: 100 * (close - lowest_low) / (highest_high - lowest_low),
+    aligned to the end of `closes` (length = len(closes) - period + 1)."""
+    n = len(closes)
+    if n < period:
+        return []
+    out: list[float] = []
+    for i in range(period - 1, n):
+        window_high = max(highs[i - period + 1 : i + 1])
+        window_low = min(lows[i - period + 1 : i + 1])
+        span = window_high - window_low
+        if span <= 0:
+            out.append(50.0)
+        else:
+            out.append(100 * (closes[i] - window_low) / span)
+    return out

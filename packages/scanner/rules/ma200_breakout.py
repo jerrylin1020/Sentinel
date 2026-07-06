@@ -19,6 +19,7 @@ def _sma(candles: list[Candle], period: int) -> float:
     description="Latest close crosses above its trailing 200-bar moving average.",
     applies_to=["equity", "crypto"],
     weight=1.8,
+    timeframe="1d",
     default_params={"period": 200},
 )
 def ma200_breakout(candles: list[Candle], params: dict) -> RuleHit | None:

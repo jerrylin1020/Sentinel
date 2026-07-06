@@ -3,6 +3,14 @@
 A rule is a pure function:  (candles, params) -> RuleHit | None
 plus metadata used for scoring and persistence. Each rule registers itself
 via the @rule decorator so the engine can discover the full rule library.
+
+`timeframe` declares which candle interval a rule expects (e.g. "1d" for
+daily bars). The engine itself is timeframe-agnostic — it evaluates
+whatever `candles` list it's given — but every rule assumes a specific bar
+size for its lookback windows to be meaningful (e.g. "52-week high" only
+means what it says if fed daily bars). Callers (scripts/demo_scan.py,
+scripts/run_backtest.py) currently fetch daily bars for every symbol, so
+every rule in this registry is written and tested against `timeframe="1d"`.
 """
 
 from __future__ import annotations
@@ -23,6 +31,7 @@ class RuleSpec:
     description: str
     applies_to: list[str]
     weight: float
+    timeframe: str
     default_params: dict = field(default_factory=dict)
     fn: RuleFn | None = None
 
@@ -43,6 +52,7 @@ def rule(
     description: str,
     applies_to: list[str],
     weight: float,
+    timeframe: str,
     default_params: dict | None = None,
 ) -> Callable[[RuleFn], RuleSpec]:
     def deco(fn: RuleFn) -> RuleSpec:
@@ -53,6 +63,7 @@ def rule(
             description=description,
             applies_to=applies_to,
             weight=weight,
+            timeframe=timeframe,
             default_params=default_params or {},
             fn=fn,
         )

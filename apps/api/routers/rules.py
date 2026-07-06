@@ -20,6 +20,7 @@ def list_rules(session: Session = Depends(get_session)):
                 "description": r.description,
                 "applies_to": r.applies_to,
                 "weight": r.weight,
+                "timeframe": r.timeframe,
                 "params": r.params,
                 "enabled": r.enabled,
                 "backtest": (

@@ -49,6 +49,9 @@ function RuleRow({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
         </button>
         <span className="font-medium">{rule.name}</span>
         <Tag className={categoryColor[rule.category] ?? "text-text-dim border-border-light"}>{rule.category}</Tag>
+        <Tag className="text-cyan border-cyan/40" title="這條規則的 K 線週期（lookback 以此為單位）">
+          {rule.timeframe}
+        </Tag>
         {b && (
           <span className="ml-auto flex gap-3 text-xs text-text-dim">
             <span>勝率 <span className="text-up">{(b.win_rate * 100).toFixed(0)}%</span></span>
@@ -58,6 +61,7 @@ function RuleRow({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
           </span>
         )}
       </div>
+      {rule.description && <p className="mt-1 text-xs text-text-dim">{rule.description}</p>}
 
       <div className="mt-3 flex flex-wrap items-end gap-4">
         <Field label="權重">

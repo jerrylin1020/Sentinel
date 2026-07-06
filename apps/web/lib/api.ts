@@ -77,6 +77,7 @@ export interface ApiRule {
   description: string;
   applies_to: string[];
   weight: number;
+  timeframe: string;
   params: Record<string, unknown>;
   enabled: boolean;
   backtest: ApiBacktest | null;

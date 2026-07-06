@@ -11,9 +11,10 @@ from packages.shared.types import Candle, RuleHit
     id="breakout_52w",
     name="52-Week High Breakout",
     category="technical",
-    description="Latest close breaks above the trailing 52-week high.",
+    description="Latest close breaks above the trailing 52-week high (252 daily bars).",
     applies_to=["equity", "crypto"],
     weight=2.1,
+    timeframe="1d",
     default_params={"lookback": 252, "min_break_pct": 0.0},
 )
 def breakout_52w(candles: list[Candle], params: dict) -> RuleHit | None:

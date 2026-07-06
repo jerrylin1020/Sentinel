@@ -79,6 +79,7 @@ class Rule(SQLModel, table=True):
     description: str = ""
     applies_to: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     weight: float = 1.0
+    timeframe: str = "1d"  # candle interval this rule's lookback windows assume
     params: dict = Field(default_factory=dict, sa_column=Column(JSON))
     enabled: bool = True
 
