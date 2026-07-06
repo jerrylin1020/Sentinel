@@ -1,11 +1,11 @@
 """End-to-end Phase 1 demo:
 
-  fetch candles (Binance) -> run scanner -> score -> persist Signal -> Telegram
+  fetch candles (Binance) -> run scanner -> score -> persist Signal -> notify
 
 Run from repo root:  python scripts/demo_scan.py
 
-Works with zero credentials: if Telegram env vars are unset the notify step is
-skipped but the signal is still scored and stored.
+Works with zero credentials: if a channel's env vars are unset that channel's
+send() is a no-op but the signal is still scored and stored.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from apps.api.models import Rule, Severity, Signal, Symbol, WatchedSymbol  # noq
 from apps.api.services.seed import seed_all  # noqa: E402
 from packages.data.crypto.binance import fetch_klines  # noqa: E402
 from packages.data.equity.yahoo import fetch_candles  # noqa: E402
-from packages.notifier import telegram  # noqa: E402
+from packages.notifier import dispatch  # noqa: E402
 from packages.scanner.deduper import dedup_key  # noqa: E402
 from packages.scanner.engine import scan_symbol  # noqa: E402
 
@@ -88,14 +88,20 @@ def run() -> None:
             session.commit()
             session.refresh(signal)
 
-            # Only P1/P2 push to Telegram; observe-level is recorded only (§5).
+            # Only P1/P2 push to notification channels; observe-level is recorded only (§5).
             if result.score.severity in ("p1", "p2"):
-                msg = telegram.format_signal(sym.ticker, result.score.severity, result.score.score, detail)
-                sent = telegram.send(msg)
-                pushed = "sent" if sent else "skipped (no creds)"
+                sent = dispatch.dispatch(
+                    w.channels, sym.ticker, result.score.severity, result.score.score, detail
+                )
+                signal.notified_channels = [ch for ch, ok in sent.items() if ok]
+                if signal.notified_channels:
+                    signal.notified_at = signal.triggered_at
+                    session.add(signal)
+                    session.commit()
+                pushed = ", ".join(f"{ch}={'sent' if ok else 'skipped'}" for ch, ok in sent.items()) or "no channels"
             else:
                 pushed = "not pushed (observe)"
-            print(f"  SIGNAL #{signal.id} [{result.score.severity}] score={result.score.score} telegram={pushed}")
+            print(f"  SIGNAL #{signal.id} [{result.score.severity}] score={result.score.score} {pushed}")
             print(f"    {detail}")
 
 
