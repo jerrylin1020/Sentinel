@@ -10,9 +10,10 @@ from datetime import datetime, timezone
 
 import httpx
 
-from packages.shared.types import Candle
+from packages.shared.types import Candle, FundingRatePoint
 
 _HOSTS = ["https://api.binance.com", "https://data-api.binance.vision"]
+_FAPI_HOSTS = ["https://fapi.binance.com"]
 
 
 def fetch_klines(symbol: str, interval: str = "1d", limit: int = 50) -> list[Candle]:
@@ -33,6 +34,28 @@ def fetch_klines(symbol: str, interval: str = "1d", limit: int = 50) -> list[Can
     raise RuntimeError(f"Binance klines failed for {symbol}: {last_err}")
 
 
+def fetch_funding_rate(symbol: str, limit: int = 100) -> list[FundingRatePoint]:
+    """Fetch perpetual futures funding-rate history (free, public, USD-M futures API).
+
+    Settlements happen every 8h, so `limit=100` covers roughly the last ~33 days.
+    Only meaningful for symbols that have a perpetual contract (e.g. "BTCUSDT").
+    """
+    last_err: Exception | None = None
+    for host in _FAPI_HOSTS:
+        try:
+            resp = httpx.get(
+                f"{host}/fapi/v1/fundingRate",
+                params={"symbol": symbol, "limit": limit},
+                timeout=10.0,
+            )
+            resp.raise_for_status()
+            return [_to_funding_point(row) for row in resp.json()]
+        except Exception as exc:  # try next host
+            last_err = exc
+            continue
+    raise RuntimeError(f"Binance funding rate failed for {symbol}: {last_err}")
+
+
 def _to_candle(row: list) -> Candle:
     # [openTime, open, high, low, close, volume, ...]
     return Candle(
@@ -42,4 +65,11 @@ def _to_candle(row: list) -> Candle:
         low=float(row[3]),
         close=float(row[4]),
         volume=float(row[5]),
+    )
+
+
+def _to_funding_point(row: dict) -> FundingRatePoint:
+    return FundingRatePoint(
+        ts=datetime.fromtimestamp(row["fundingTime"] / 1000, tz=timezone.utc),
+        rate=float(row["fundingRate"]),
     )

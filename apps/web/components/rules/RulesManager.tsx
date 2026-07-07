@@ -60,6 +60,9 @@ function RuleRow({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
             <span>樣本 {b.sample_triggers}</span>
           </span>
         )}
+        {!b && rule.data_source !== "candles" && (
+          <span className="ml-auto text-xs text-text-faint">尚未支援回測（非日K資料來源）</span>
+        )}
       </div>
       {rule.description && <p className="mt-1 text-xs text-text-dim">{rule.description}</p>}
 

@@ -20,7 +20,7 @@ from sqlmodel import Session, select  # noqa: E402
 from apps.api.db import engine, init_db  # noqa: E402
 from apps.api.models import Rule, Severity, Signal, Symbol, WatchedSymbol  # noqa: E402
 from apps.api.services.seed import seed_all  # noqa: E402
-from packages.data.crypto.binance import fetch_klines  # noqa: E402
+from packages.data.crypto.binance import fetch_klines, fetch_funding_rate  # noqa: E402
 from packages.data.equity.yahoo import fetch_candles  # noqa: E402
 from packages.notifier import dispatch  # noqa: E402
 from packages.scanner.deduper import dedup_key  # noqa: E402
@@ -52,6 +52,15 @@ def run() -> None:
                 print(f"  ! data fetch failed: {exc}")
                 continue
 
+            # Funding rate only exists for crypto perpetuals; best-effort since
+            # not every symbol has a perpetual contract (e.g. spot-only pairs).
+            funding_rates = None
+            if sym.asset_type.value == "crypto":
+                try:
+                    funding_rates = fetch_funding_rate(sym.ticker, limit=100)
+                except Exception as exc:
+                    print(f"  ! funding rate fetch skipped: {exc}")
+
             active_rules = [r for r in (w.enabled_rules or []) if r not in disabled]
             result = scan_symbol(
                 sym.ticker,
@@ -60,6 +69,7 @@ def run() -> None:
                 enabled_rules=active_rules or None,
                 params_overrides={"volume_spike_2x": {"multiplier": w.volume_multiplier}},
                 p1_min_score=w.p1_score_threshold,
+                funding_rates=funding_rates,
             )
 
             if not result.hits:

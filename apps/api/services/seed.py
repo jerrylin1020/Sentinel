@@ -27,6 +27,7 @@ def seed_rules(session: Session) -> None:
             existing.category = RuleCategory(spec.category)
             existing.applies_to = list(spec.applies_to)
             existing.timeframe = spec.timeframe
+            existing.data_source = spec.data_source
             session.add(existing)
             continue
         session.add(
@@ -38,6 +39,7 @@ def seed_rules(session: Session) -> None:
                 applies_to=list(spec.applies_to),
                 weight=spec.weight,
                 timeframe=spec.timeframe,
+                data_source=spec.data_source,
                 params=dict(spec.default_params),
                 enabled=True,
             )
