@@ -6,12 +6,30 @@ import { apiDelete, apiPatch, apiPost, type ApiWatched } from "@/lib/api";
 
 const CHANNELS = ["telegram", "email", "line"];
 
+type RuleOption = { id: string; name: string; category: string; applies_to: string[] };
+
+// Category display order + accent color (dot + active chip). Falls back to text-dim/gray for unknown categories.
+const CATEGORY_ORDER = ["volume", "technical", "flow", "onchain", "news", "composite"];
+const CATEGORY_LABEL: Record<string, string> = {
+  volume: "Volume", technical: "Technical", flow: "Flow", onchain: "On-chain", news: "News", composite: "Composite",
+};
+// Static class strings so Tailwind's JIT compiler can see them (dynamic `bg-${x}` template strings won't be detected).
+const CATEGORY_STYLE: Record<string, { dot: string; dotActive: string; chipActive: string; chipDotActive: string }> = {
+  volume: { dot: "bg-text-faint", dotActive: "bg-cyan", chipActive: "border-cyan/45 bg-cyan/10 text-cyan", chipDotActive: "bg-cyan" },
+  technical: { dot: "bg-text-faint", dotActive: "bg-amber", chipActive: "border-amber/45 bg-amber/10 text-amber", chipDotActive: "bg-amber" },
+  flow: { dot: "bg-text-faint", dotActive: "bg-purple", chipActive: "border-purple/45 bg-purple/10 text-purple", chipDotActive: "bg-purple" },
+  onchain: { dot: "bg-text-faint", dotActive: "bg-up", chipActive: "border-up/45 bg-up/10 text-up", chipDotActive: "bg-up" },
+  news: { dot: "bg-text-faint", dotActive: "bg-blue", chipActive: "border-blue/45 bg-blue/10 text-blue", chipDotActive: "bg-blue" },
+  composite: { dot: "bg-text-faint", dotActive: "bg-down", chipActive: "border-down/45 bg-down/10 text-down", chipDotActive: "bg-down" },
+};
+const DEFAULT_CATEGORY_STYLE = { dot: "bg-text-faint", dotActive: "bg-text-dim", chipActive: "border-border-light bg-panel-3 text-text", chipDotActive: "bg-text-dim" };
+
 export function WatchlistManager({
   initial,
   allRules,
 }: {
   initial: ApiWatched[];
-  allRules: { id: string; name: string }[];
+  allRules: RuleOption[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -84,7 +102,7 @@ function Row({
   onSaved,
 }: {
   item: ApiWatched;
-  allRules: { id: string; name: string }[];
+  allRules: RuleOption[];
   onRemove: (id: number, t: string) => void;
   onSaved: () => void;
 }) {
@@ -99,6 +117,23 @@ function Row({
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
     setSaved(false);
   }
+
+  // Only show rules that actually apply to this symbol's asset type (e.g. hide crypto-only
+  // rules like Funding Rate Spike for equity symbols) instead of listing all 14 unconditionally.
+  const applicable = allRules.filter((r) => r.applies_to.includes(item.symbol.asset_type));
+  const excludedCount = allRules.length - applicable.length;
+  const groupedRules = CATEGORY_ORDER.map((cat) => [cat, applicable.filter((r) => r.category === cat)] as const)
+    .filter(([, list]) => list.length > 0)
+    .concat(
+      applicable
+        .filter((r) => !CATEGORY_ORDER.includes(r.category))
+        .reduce<Array<readonly [string, RuleOption[]]>>((acc, r) => {
+          const existing = acc.find(([c]) => c === r.category);
+          if (existing) existing[1].push(r);
+          else acc.push([r.category, [r]]);
+          return acc;
+        }, [])
+    );
 
   async function save() {
     setSaving(true);
@@ -150,15 +185,65 @@ function Row({
         </Field>
       </div>
 
-      <div className="mt-3">
-        <div className="mb-1 text-xs uppercase tracking-wider text-text-dim">啟用規則 ({rules.length})</div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {allRules.map((r) => (
-            <label key={r.id} className="flex items-center gap-1 text-xs text-text-dim">
-              <input type="checkbox" checked={rules.includes(r.id)} onChange={() => toggle(rules, setRules, r.id)} />
-              {r.name}
-            </label>
-          ))}
+      <div className="mt-3 border-t border-border pt-3">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-text-dim">啟用規則</span>
+          <span className="mono text-xs text-up">
+            {rules.length} / {applicable.length} 適用
+          </span>
+          {excludedCount > 0 && (
+            <span className="text-[11px] text-text-faint">
+              僅顯示適用於 {item.symbol.asset_type} 的規則（已自動排除 {excludedCount} 條不適用規則）
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {groupedRules.map(([category, ruleList]) => {
+            const style = CATEGORY_STYLE[category] ?? DEFAULT_CATEGORY_STYLE;
+            const allOn = ruleList.every((r) => rules.includes(r.id));
+            return (
+              <div key={category} className="rounded border border-border overflow-hidden">
+                <div className="flex items-center gap-2 border-b border-border bg-panel-2 px-2.5 py-1.5">
+                  <span className={`h-1.5 w-1.5 rounded-full ${style.dotActive}`} />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-text-dim">
+                    {CATEGORY_LABEL[category] ?? category}
+                  </span>
+                  <div className="ml-auto flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ids = ruleList.map((r) => r.id);
+                        setRules(allOn ? rules.filter((r) => !ids.includes(r)) : Array.from(new Set([...rules, ...ids])));
+                        setSaved(false);
+                      }}
+                      className="text-[11px] text-text-faint underline hover:text-cyan"
+                    >
+                      {allOn ? "清空" : "全選"}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 p-2">
+                  {ruleList.map((r) => {
+                    const active = rules.includes(r.id);
+                    return (
+                      <button
+                        type="button"
+                        key={r.id}
+                        onClick={() => toggle(rules, setRules, r.id)}
+                        className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                          active ? style.chipActive : "border-border-light bg-panel-3 text-text-faint"
+                        }`}
+                      >
+                        <span className={`h-1 w-1 rounded-full ${active ? style.chipDotActive : "bg-text-faint"}`} />
+                        {r.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
