@@ -15,6 +15,7 @@ from packages.shared.types import Candle, RuleHit
     description="RSI crosses back above the oversold threshold.",
     applies_to=["equity", "crypto"],
     weight=1.6,
+    timeframe="1d",
     default_params={"period": 14, "oversold": 30.0},
 )
 def rsi_reversal(candles: list[Candle], params: dict) -> RuleHit | None:

@@ -22,9 +22,9 @@ export function Panel({
   );
 }
 
-export function Tag({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function Tag({ children, className = "", title }: { children: React.ReactNode; className?: string; title?: string }) {
   return (
-    <span className={`mono rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${className}`}>
+    <span title={title} className={`mono rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${className}`}>
       {children}
     </span>
   );

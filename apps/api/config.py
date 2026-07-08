@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 
+    # LINE Notify — https://notify-bot.line.me (per-user/group access token).
+    line_notify_token: str = ""
+
+    # Email via Resend (https://resend.com) REST API — no SMTP server needed.
+    resend_api_key: str = ""
+    email_from: str = "signals@sentinel.local"
+    email_to: str = ""
+
     # Seed rules + watchlist on startup. Keep True for local/dev; set False on
     # serverless (Vercel) where the DB is already seeded and cold starts are hot.
     autoseed: bool = True

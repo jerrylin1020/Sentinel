@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, getSignals } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
+import { fmtDateTime } from "@/lib/format";
 
 function fmtTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return fmtDateTime(iso);
 }
 
 export default async function SignalsPage() {
@@ -24,7 +24,7 @@ export default async function SignalsPage() {
               <th className="py-2">Sev</th>
               <th>Ticker</th>
               <th>Score</th>
-              <th>Tags</th>
+              <th>Rules</th>
               <th className="text-right">Price</th>
               <th className="text-right">Time</th>
             </tr>
@@ -36,16 +36,16 @@ export default async function SignalsPage() {
                   <Tag className={severityColor[s.severity]}>{s.severity}</Tag>
                 </td>
                 <td>
-                  <Link href={`/detail/${s.ticker}`} className="mono font-semibold hover:text-cyan">
+                  <Link href={`/detail/${s.ticker}#signal-${s.id}`} className="mono font-semibold hover:text-cyan">
                     {s.ticker}
                   </Link>
                 </td>
                 <td className="mono">{s.score.toFixed(1)}</td>
                 <td>
                   <div className="flex flex-wrap gap-1">
-                    {s.tags.map((t) => (
-                      <Tag key={t} className={categoryColor[t] ?? "text-text-dim border-border-light"}>
-                        {t}
+                    {s.rules.map((r) => (
+                      <Tag key={r.id} className={categoryColor[r.category] ?? "text-text-dim border-border-light"} title={r.detail}>
+                        {r.name}
                       </Tag>
                     ))}
                   </div>

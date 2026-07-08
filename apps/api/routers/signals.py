@@ -20,10 +20,25 @@ def list_signals(
     out = []
     for sig in session.exec(stmt).all():
         sym = session.get(Symbol, sig.symbol_id)
-        # tags = rule categories that contributed to this signal's score
+        # rules = which specific rule(s) fired, with a human-readable reason —
+        # not just the category tag, so the UI can show *why* a signal exists.
+        rules = []
         tags = []
+        extra = sig.extra or {}
         for rid in (sig.score_components or {}).keys():
             r = session.get(Rule, rid)
+            entry = extra.get(rid) or {}
+            # Older signals stored `extra[rule_id]` as the raw metrics dict
+            # directly (no "detail" key) — fall back gracefully.
+            detail = entry.get("detail", "") if isinstance(entry, dict) else ""
+            rules.append(
+                {
+                    "id": rid,
+                    "name": r.name if r else rid,
+                    "category": r.category.value if r else "",
+                    "detail": detail,
+                }
+            )
             if r:
                 tags.append(r.category.value)
         out.append(
@@ -35,6 +50,7 @@ def list_signals(
                 "severity": sig.severity.value,
                 "score": sig.score,
                 "tags": sorted(set(tags)),
+                "rules": rules,
                 "price": sig.price_at_trigger,
                 "triggered_at": sig.triggered_at,
                 "status": sig.status.value,

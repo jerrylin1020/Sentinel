@@ -50,6 +50,13 @@ def run() -> None:
             spec = registry.get(rule.id)
             if spec is None:
                 continue
+            if spec.data_source != "candles":
+                # Non-OHLCV rules (e.g. funding_rate_spike) aren't supported by
+                # this bar-by-bar forward-return backtester yet — skip rather
+                # than crash. Their win-rate stats will show as "no data" in
+                # the UI until a dedicated backtest path is built for them.
+                print(f"{rule.id}: skipped (data_source={spec.data_source!r}, backtest not supported yet)")
+                continue
 
             returns: list[float] = []
             bars_evaluated = 0

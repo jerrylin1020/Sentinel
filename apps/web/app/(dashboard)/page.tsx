@@ -2,9 +2,10 @@ import Link from "next/link";
 import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, getSignals, getWatchlist } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
+import { fmtHourMinute } from "@/lib/format";
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+  return fmtHourMinute(iso);
 }
 
 export default async function DashboardPage() {
@@ -36,9 +37,9 @@ export default async function DashboardPage() {
                   </Link>
                   <span className="mono w-12 text-text-dim">{s.score.toFixed(1)}</span>
                   <div className="flex flex-1 flex-wrap gap-1">
-                    {s.tags.map((t) => (
-                      <Tag key={t} className={categoryColor[t] ?? "text-text-dim border-border-light"}>
-                        {t}
+                    {s.rules.map((r) => (
+                      <Tag key={r.id} className={categoryColor[r.category] ?? "text-text-dim border-border-light"} title={r.detail}>
+                        {r.name}
                       </Tag>
                     ))}
                   </div>

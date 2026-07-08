@@ -14,6 +14,7 @@ from packages.shared.types import Candle, RuleHit
     description="Latest volume exceeds N x the trailing average volume.",
     applies_to=["equity", "crypto"],
     weight=2.4,
+    timeframe="1d",
     default_params={"multiplier": 2.0, "lookback": 20, "min_price": 0.0},
 )
 def volume_spike(candles: list[Candle], params: dict) -> RuleHit | None:

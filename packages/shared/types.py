@@ -26,3 +26,11 @@ class RuleHit:
     severity: str  # "p1" | "p2" | "observe"
     detail: str
     metrics: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class FundingRatePoint:
+    """A single perpetual-futures funding rate settlement (e.g. Binance, every 8h)."""
+
+    ts: datetime
+    rate: float  # e.g. 0.0001 = 0.01% per funding interval

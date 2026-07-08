@@ -25,3 +25,4 @@ venv/
 # Data
 *.sqlite
 *.db
+*.tsbuildinfo

@@ -18,6 +18,7 @@ from packages.shared.types import Candle, RuleHit
     description="Price is within a small band of its 200-week (≈1000-day) moving average.",
     applies_to=["equity", "crypto"],
     weight=1.8,
+    timeframe="1d",
     default_params={"period": 1000, "proximity_pct": 0.03},
 )
 def ma200w_proximity(candles: list[Candle], params: dict) -> RuleHit | None:
