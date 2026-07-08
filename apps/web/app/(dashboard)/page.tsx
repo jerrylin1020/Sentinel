@@ -2,9 +2,10 @@ import Link from "next/link";
 import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, getSignals, getWatchlist } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
+import { fmtHourMinute } from "@/lib/format";
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+  return fmtHourMinute(iso);
 }
 
 export default async function DashboardPage() {

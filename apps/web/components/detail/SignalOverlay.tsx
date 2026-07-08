@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CandleChart, type ChartMarker } from "@/components/charts/CandleChart";
 import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, type ApiSignal } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
+import { fmtDateTime } from "@/lib/format";
 
 const markerColor: Record<string, string> = { p1: "#ff3b58", p2: "#ffb627", observe: "#7a839a" };
 
@@ -15,7 +16,7 @@ const SEVERITY_INFO: Record<string, string> = {
 };
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleString("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return fmtDateTime(iso);
 }
 
 export function SignalOverlay({ symbol, related }: { symbol: string; related: ApiSignal[] }) {
@@ -38,19 +39,25 @@ export function SignalOverlay({ symbol, related }: { symbol: string; related: Ap
   }, []);
 
 
-  const markers: ChartMarker[] = numbered.map(({ signal: s, index }) => ({
-    time: new Date(s.triggered_at).toISOString().slice(0, 10),
-    position: "aboveBar",
-    color: markerColor[s.severity] ?? "#7a839a",
-    shape: "circle",
-    text: `#${index}`,
-    id: String(s.id),
-  }));
+  const markers: ChartMarker[] = useMemo(
+    () =>
+      numbered.map(({ signal: s, index }) => ({
+        time: new Date(s.triggered_at).toISOString().slice(0, 10),
+        position: "aboveBar" as const,
+        color: markerColor[s.severity] ?? "#7a839a",
+        shape: "circle" as const,
+        text: `#${index}`,
+        id: String(s.id),
+      })),
+    [numbered],
+  );
+
+  const handleMarkerClick = useCallback((id: string) => setSelectedId(Number(id)), []);
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <Panel title="K 線圖 · 日線 (訊號疊加，點擊圓點對應右側訊號)" className="lg:col-span-2">
-        <CandleChart ticker={symbol} markers={markers} onMarkerClick={(id) => setSelectedId(Number(id))} />
+        <CandleChart ticker={symbol} markers={markers} onMarkerClick={handleMarkerClick} />
         <div className="mt-2 flex flex-wrap gap-3 border-t border-border pt-2 text-[11px] text-text-faint">
           {(["p1", "p2", "observe"] as const).map((sev) => (
             <span key={sev} className="flex items-center gap-1" title={SEVERITY_INFO[sev]}>

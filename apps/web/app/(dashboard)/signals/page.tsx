@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, getSignals } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
+import { fmtDateTime } from "@/lib/format";
 
 function fmtTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString("zh-TW", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  return fmtDateTime(iso);
 }
 
 export default async function SignalsPage() {
