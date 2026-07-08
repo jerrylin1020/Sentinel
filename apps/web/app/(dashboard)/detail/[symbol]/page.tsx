@@ -1,11 +1,12 @@
 import { SignalOverlay } from "@/components/detail/SignalOverlay";
-import { getSignals } from "@/lib/api";
+import { getSignals, getWatchlist } from "@/lib/api";
 
 export default async function DetailPage({ params }: { params: { symbol: string } }) {
   const symbol = decodeURIComponent(params.symbol);
-  const all = await getSignals();
+  const [all, watchlist] = await Promise.all([getSignals(), getWatchlist()]);
   const related = all.filter((s) => s.ticker === symbol);
   const head = related[0];
+  const watched = watchlist.find((w) => w.symbol.ticker === symbol);
 
   return (
     <div className="space-y-4">
@@ -14,7 +15,7 @@ export default async function DetailPage({ params }: { params: { symbol: string 
         {head && <span className="mono text-2xl text-text-dim">{head.price.toLocaleString()}</span>}
       </div>
 
-      <SignalOverlay symbol={symbol} related={related} />
+      <SignalOverlay symbol={symbol} related={related} exchange={watched?.symbol.exchange} />
     </div>
   );
 }

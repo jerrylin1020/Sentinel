@@ -89,7 +89,11 @@ export function CandleChart({
     fetch(`${BASE}/candles/${encodeURIComponent(ticker)}?timeframe=${timeframe}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
-        if (disposed || !Array.isArray(data) || data.length === 0) {
+        // A stale effect (e.g. React StrictMode's dev-mode double-invoke, or a fast
+        // ticker/timeframe switch) may still resolve after cleanup ran — ignore it
+        // entirely rather than clobbering the state set by the current, live effect.
+        if (disposed) return;
+        if (!Array.isArray(data) || data.length === 0) {
           setError(true);
           return;
         }
@@ -100,7 +104,9 @@ export function CandleChart({
         chart.timeScale().fitContent();
         setLoading(false);
       })
-      .catch(() => setError(true));
+      .catch(() => {
+        if (!disposed) setError(true);
+      });
 
     return () => {
       disposed = true;

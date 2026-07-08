@@ -19,8 +19,23 @@ function fmtTime(iso: string) {
   return fmtDateTime(iso);
 }
 
-export function SignalOverlay({ symbol, related }: { symbol: string; related: ApiSignal[] }) {
+export function SignalOverlay({
+  symbol,
+  related,
+  exchange,
+}: {
+  symbol: string;
+  related: ApiSignal[];
+  exchange?: string;
+}) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  // TradingView blocks iframing its full chart app (frame-ancestors: none), even for saved
+  // layouts / logged-in accounts — so we can't embed it. Opening it in a new tab, however,
+  // inherits the user's existing TradingView session (subscription, saved indicators, etc).
+  const tradingViewUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(
+    exchange ? `${exchange}:${symbol}` : symbol,
+  )}`;
 
   // Number signals in the order they're listed (newest first from the API) so the same
   // index badge appears both on the chart marker and the sidebar card — this is what makes
@@ -56,7 +71,21 @@ export function SignalOverlay({ symbol, related }: { symbol: string; related: Ap
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <Panel title="K 線圖 · 日線 (訊號疊加，點擊圓點對應右側訊號)" className="lg:col-span-2">
+      <Panel
+        title="K 線圖 · 日線 (訊號疊加，點擊圓點對應右側訊號)"
+        className="lg:col-span-2"
+        action={
+          <a
+            href={tradingViewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded border border-border-light px-2 py-1 text-[11px] text-text-dim transition-colors hover:border-cyan/40 hover:text-cyan"
+            title="在新分頁開啟 TradingView（會使用你自己的登入/訂閱）"
+          >
+            在 TradingView 開啟 ↗
+          </a>
+        }
+      >
         <CandleChart ticker={symbol} markers={markers} onMarkerClick={handleMarkerClick} />
         <div className="mt-2 flex flex-wrap gap-3 border-t border-border pt-2 text-[11px] text-text-faint">
           {(["p1", "p2", "observe"] as const).map((sev) => (
