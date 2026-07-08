@@ -26,3 +26,5 @@ venv/
 *.sqlite
 *.db
 *.tsbuildinfo
+.vercel
+.env*
