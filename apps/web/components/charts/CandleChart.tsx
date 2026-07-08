@@ -5,6 +5,7 @@ import {
   ColorType,
   createChart,
   createSeriesMarkers,
+  type MouseEventParams,
   type SeriesMarker,
   type Time,
 } from "lightweight-charts";
@@ -14,7 +15,15 @@ const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 export type ChartMarker = SeriesMarker<Time>;
 
-export function CandleChart({ ticker, markers = [] }: { ticker: string; markers?: ChartMarker[] }) {
+export function CandleChart({
+  ticker,
+  markers = [],
+  onMarkerClick,
+}: {
+  ticker: string;
+  markers?: ChartMarker[];
+  onMarkerClick?: (markerId: string) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,6 +49,26 @@ export function CandleChart({ ticker, markers = [] }: { ticker: string; markers?
       wickDownColor: "#ff3b58",
     });
 
+    // Markers can share the same date (multiple signals same day); index them by time
+    // so a click on the chart can be resolved back to the specific signal(s) at that bar.
+    const markersByTime = new Map<string, ChartMarker[]>();
+    for (const m of markers) {
+      const key = String(m.time);
+      const list = markersByTime.get(key) ?? [];
+      list.push(m);
+      markersByTime.set(key, list);
+    }
+    function handleClick(param: MouseEventParams<Time>) {
+      if (!param.time || !onMarkerClick) return;
+      const hit = markersByTime.get(String(param.time));
+      if (hit && hit.length > 0) {
+        // Multiple signals can land on the same bar; surface the first one's id and let the
+        // caller decide how to highlight (the sidebar list groups by the same date anyway).
+        onMarkerClick(hit[0].id ?? "");
+      }
+    }
+    if (onMarkerClick) chart.subscribeClick(handleClick);
+
     let disposed = false;
     fetch(`${BASE}/candles/${encodeURIComponent(ticker)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -59,9 +88,10 @@ export function CandleChart({ ticker, markers = [] }: { ticker: string; markers?
 
     return () => {
       disposed = true;
+      if (onMarkerClick) chart.unsubscribeClick(handleClick);
       chart.remove();
     };
-  }, [ticker, markers]);
+  }, [ticker, markers, onMarkerClick]);
 
   return (
     <div className="relative">

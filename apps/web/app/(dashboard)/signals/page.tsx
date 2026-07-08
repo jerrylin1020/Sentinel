@@ -36,7 +36,7 @@ export default async function SignalsPage() {
                   <Tag className={severityColor[s.severity]}>{s.severity}</Tag>
                 </td>
                 <td>
-                  <Link href={`/detail/${s.ticker}`} className="mono font-semibold hover:text-cyan">
+                  <Link href={`/detail/${s.ticker}#signal-${s.id}`} className="mono font-semibold hover:text-cyan">
                     {s.ticker}
                   </Link>
                 </td>
