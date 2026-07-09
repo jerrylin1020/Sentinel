@@ -17,16 +17,35 @@ def list_signals(
     if severity is not None:
         stmt = stmt.where(Signal.severity == severity)
 
+    signals = session.exec(stmt).all()
+
+    # Batch-fetch every Symbol/Rule referenced by this page of signals up
+    # front instead of one round-trip per row (was N+1: ~80+ individual
+    # queries for ~28 signals, ~16s over the Supabase pooler). One query per
+    # table regardless of result size keeps this fast even as signals grow.
+    symbol_ids = {sig.symbol_id for sig in signals}
+    rule_ids = {rid for sig in signals for rid in (sig.score_components or {}).keys()}
+    symbols_by_id = (
+        {s.id: s for s in session.exec(select(Symbol).where(Symbol.id.in_(symbol_ids)))}
+        if symbol_ids
+        else {}
+    )
+    rules_by_id = (
+        {r.id: r for r in session.exec(select(Rule).where(Rule.id.in_(rule_ids)))}
+        if rule_ids
+        else {}
+    )
+
     out = []
-    for sig in session.exec(stmt).all():
-        sym = session.get(Symbol, sig.symbol_id)
+    for sig in signals:
+        sym = symbols_by_id.get(sig.symbol_id)
         # rules = which specific rule(s) fired, with a human-readable reason —
         # not just the category tag, so the UI can show *why* a signal exists.
         rules = []
         tags = []
         extra = sig.extra or {}
         for rid in (sig.score_components or {}).keys():
-            r = session.get(Rule, rid)
+            r = rules_by_id.get(rid)
             entry = extra.get(rid) or {}
             # Older signals stored `extra[rule_id]` as the raw metrics dict
             # directly (no "detail" key) — fall back gracefully.

@@ -10,11 +10,13 @@ router = APIRouter(prefix="/watchlist", tags=["watchlist"])
 @router.get("")
 def list_watchlist(session: Session = Depends(get_session)):
     items = session.exec(select(WatchedSymbol)).all()
-    out = []
-    for w in items:
-        sym = session.get(Symbol, w.symbol_id)
-        out.append({"watched": w, "symbol": sym})
-    return out
+    symbol_ids = {w.symbol_id for w in items}
+    symbols_by_id = (
+        {s.id: s for s in session.exec(select(Symbol).where(Symbol.id.in_(symbol_ids)))}
+        if symbol_ids
+        else {}
+    )
+    return [{"watched": w, "symbol": symbols_by_id.get(w.symbol_id)} for w in items]
 
 
 @router.post("", status_code=201)
