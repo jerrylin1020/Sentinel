@@ -26,5 +26,9 @@ class Settings(BaseSettings):
     # serverless (Vercel) where the DB is already seeded and cold starts are hot.
     autoseed: bool = True
 
+    # Shared secret required by an external cron service (e.g. cron-job.org) to
+    # hit POST /cron/scan. Empty string means the endpoint is disabled (404).
+    cron_secret: str = ""
+
 
 settings = Settings()

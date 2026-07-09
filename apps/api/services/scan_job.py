@@ -1,0 +1,125 @@
+"""Reusable "fetch -> scan -> score -> persist -> notify" job.
+
+Extracted from scripts/demo_scan.py so the exact same logic can be triggered
+two ways:
+  1. GitHub Actions schedule (scripts/demo_scan.py), as a free-but-imprecise
+     backup (GitHub only guarantees best-effort timing on `schedule` cron,
+     often delayed well beyond the configured 5 minutes under load).
+  2. An HTTP endpoint (apps.api.routers.cron) hit by an external, precise
+     free cron service (e.g. cron-job.org) every 5 minutes — this is the
+     primary mechanism.
+"""
+
+from __future__ import annotations
+
+from sqlmodel import Session, select
+
+from apps.api.db import engine, init_db
+from apps.api.models import Rule, Severity, Signal, Symbol, WatchedSymbol
+from apps.api.services.seed import seed_all
+from packages.data.crypto.binance import fetch_klines, fetch_funding_rate
+from packages.data.equity.yahoo import fetch_candles
+from packages.notifier import dispatch
+from packages.scanner.deduper import dedup_key
+from packages.scanner.engine import scan_symbol
+
+
+def run_scan() -> list[dict]:
+    """Run one scan pass over the whole watchlist. Returns a per-symbol summary."""
+    init_db()
+    summary: list[dict] = []
+
+    with Session(engine) as session:
+        seed_all(session)
+
+        # Globally disabled rules (e.g. pruned by backtest) are excluded from
+        # every scan, regardless of a symbol's enabled_rules list.
+        disabled = {r.id for r in session.exec(select(Rule)).all() if not r.enabled}
+
+        watched = session.exec(select(WatchedSymbol)).all()
+        for w in watched:
+            sym = session.get(Symbol, w.symbol_id)
+            entry: dict = {"ticker": sym.ticker}
+
+            try:
+                # Fetch long history so long-term rules (e.g. 200-week MA,
+                # 52-week breakout) have enough lookback.
+                if sym.asset_type.value == "crypto":
+                    candles = fetch_klines(sym.ticker, interval="1d", limit=1000)
+                else:  # equity via Yahoo Finance
+                    candles = fetch_candles(sym.ticker, rng="5y", interval="1d")
+            except Exception as exc:
+                entry["error"] = f"data fetch failed: {exc}"
+                summary.append(entry)
+                continue
+
+            # Funding rate only exists for crypto perpetuals; best-effort since
+            # not every symbol has a perpetual contract (e.g. spot-only pairs).
+            funding_rates = None
+            if sym.asset_type.value == "crypto":
+                try:
+                    funding_rates = fetch_funding_rate(sym.ticker, limit=100)
+                except Exception:
+                    pass
+
+            active_rules = [r for r in (w.enabled_rules or []) if r not in disabled]
+            result = scan_symbol(
+                sym.ticker,
+                sym.asset_type.value,
+                candles,
+                enabled_rules=active_rules or None,
+                params_overrides={"volume_spike_2x": {"multiplier": w.volume_multiplier}},
+                p1_min_score=w.p1_score_threshold,
+                funding_rates=funding_rates,
+            )
+
+            if not result.hits:
+                entry["hits"] = 0
+                summary.append(entry)
+                continue
+
+            detail = "; ".join(h.detail for h in result.hits)
+            key = dedup_key(sym.ticker, [h.rule_id for h in result.hits])
+            if session.exec(select(Signal).where(Signal.dedup_key == key)).first():
+                entry["deduped"] = True
+                summary.append(entry)
+                continue
+
+            primary = result.hits[0]
+            signal = Signal(
+                symbol_id=sym.id,
+                rule_id=primary.rule_id,
+                severity=Severity(result.score.severity),
+                score=result.score.score,
+                score_components=result.score.components,
+                price_at_trigger=primary.metrics.get("price", 0.0),
+                volume_multiplier=primary.metrics.get("volume_multiplier", 0.0),
+                # Keep the human-readable "why" (e.g. "Closed above upper Bollinger
+                # band (312.08)") alongside raw metrics so the UI can show exactly
+                # which rule fired and why, not just its category.
+                extra={h.rule_id: {"detail": h.detail, "metrics": h.metrics} for h in result.hits},
+                dedup_key=key,
+            )
+            session.add(signal)
+            session.commit()
+            session.refresh(signal)
+
+            # Only P1/P2 push to notification channels; observe-level is recorded only (§5).
+            if result.score.severity in ("p1", "p2"):
+                sent = dispatch.dispatch(
+                    w.channels, sym.ticker, result.score.severity, result.score.score, detail
+                )
+                signal.notified_channels = [ch for ch, ok in sent.items() if ok]
+                if signal.notified_channels:
+                    signal.notified_at = signal.triggered_at
+                    session.add(signal)
+                    session.commit()
+                entry["notified"] = sent
+
+            entry["signal_id"] = signal.id
+            entry["severity"] = result.score.severity
+            entry["score"] = result.score.score
+            entry["detail"] = detail
+            summary.append(entry)
+
+    return summary
