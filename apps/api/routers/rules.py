@@ -9,9 +9,16 @@ router = APIRouter(prefix="/rules", tags=["rules"])
 
 @router.get("")
 def list_rules(session: Session = Depends(get_session)):
+    rules = session.exec(select(Rule)).all()
+    rule_ids = [r.id for r in rules]
+    stats_by_id = (
+        {s.rule_id: s for s in session.exec(select(RuleBacktestStats).where(RuleBacktestStats.rule_id.in_(rule_ids)))}
+        if rule_ids
+        else {}
+    )
     out = []
-    for r in session.exec(select(Rule)).all():
-        stats = session.get(RuleBacktestStats, r.id)
+    for r in rules:
+        stats = stats_by_id.get(r.id)
         out.append(
             {
                 "id": r.id,
