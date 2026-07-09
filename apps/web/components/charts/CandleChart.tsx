@@ -15,6 +15,14 @@ const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 export type ChartMarker = SeriesMarker<Time>;
 
+// Stable empty-array reference so the "not 1d" branch below doesn't create a
+// new array literal every render — a fresh `[]` each render would be a new
+// object identity, which (being in the effect's dependency array) caused the
+// effect to tear down and re-fetch on every render, looping forever and
+// leaving 1H/1W/1M stuck on "載入中…" (only 1d worked, since it reuses the
+// `markers` prop's stable reference instead of a literal).
+const EMPTY_MARKERS: ChartMarker[] = [];
+
 const TIMEFRAMES = [
   { id: "1h", label: "1H" },
   { id: "1d", label: "1D" },
@@ -40,7 +48,7 @@ export function CandleChart({
   // Rules only ever evaluate daily bars, so the recorded signal dates only line up with the
   // "1d" series. Overlaying them on 1H/1W/1M bars would point at the wrong candle, so we only
   // show markers in daily view and tell the user why they disappear otherwise.
-  const activeMarkers = timeframe === "1d" ? markers : [];
+  const activeMarkers = timeframe === "1d" ? markers : EMPTY_MARKERS;
 
   useEffect(() => {
     const el = ref.current;
