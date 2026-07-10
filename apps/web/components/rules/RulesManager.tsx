@@ -68,15 +68,22 @@ function RuleCard({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const b = rule.backtest;
 
   async function save(next?: Partial<{ enabled: boolean }>) {
     setSaving(true);
     const body = { enabled: next?.enabled ?? enabled, weight, params };
-    await apiPatch(`/rules/${rule.id}`, body);
-    setSaving(false);
-    setSaved(true);
-    onSaved();
+    setError(null);
+    try {
+      await apiPatch(`/rules/${rule.id}`, body);
+      setSaved(true);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "儲存失敗，請稍後再試。");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -189,6 +196,7 @@ function RuleCard({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
             {saving ? "儲存中…" : "儲存"}
           </button>
           {saved && <span className="text-xs text-up">已儲存 ✓</span>}
+          {error && <span role="alert" className="text-xs text-down">{error}</span>}
         </div>
       </details>
     </div>

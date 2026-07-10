@@ -33,6 +33,7 @@ export function WatchlistManager({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Add-symbol form state
   const [ticker, setTicker] = useState("");
@@ -44,18 +45,30 @@ export function WatchlistManager({
     e.preventDefault();
     if (!ticker.trim()) return;
     setBusy(true);
-    await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
-    setTicker(""); setName(""); setExchange("");
-    setBusy(false);
-    router.refresh();
+    setError(null);
+    try {
+      await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
+      setTicker(""); setName(""); setExchange("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "新增標的失敗，請稍後再試。");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove(id: number, t: string) {
     if (!confirm(`確定要刪除 ${t}?`)) return;
     setBusy(true);
-    await apiDelete(`/watchlist/${id}`);
-    setBusy(false);
-    router.refresh();
+    setError(null);
+    try {
+      await apiDelete(`/watchlist/${id}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "刪除標的失敗，請稍後再試。");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -84,6 +97,7 @@ export function WatchlistManager({
           ＋ 新增標的
         </button>
       </form>
+      {error && <p role="alert" className="rounded-md border border-down/40 bg-down/10 px-3 py-2 text-xs text-down">{error}</p>}
 
       <div className="space-y-2">
         {initial.map((it) => (
@@ -112,6 +126,7 @@ function Row({
   const [rules, setRules] = useState<string[]>(item.watched.enabled_rules);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function toggle(list: string[], setList: (v: string[]) => void, v: string) {
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -137,15 +152,21 @@ function Row({
 
   async function save() {
     setSaving(true);
-    await apiPatch(`/watchlist/${item.watched.id}`, {
-      p1_score_threshold: threshold,
-      volume_multiplier: mult,
-      channels,
-      enabled_rules: rules,
-    });
-    setSaving(false);
-    setSaved(true);
-    onSaved();
+    setError(null);
+    try {
+      await apiPatch(`/watchlist/${item.watched.id}`, {
+        p1_score_threshold: threshold,
+        volume_multiplier: mult,
+        channels,
+        enabled_rules: rules,
+      });
+      setSaved(true);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "儲存失敗，請稍後再試。");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -253,6 +274,7 @@ function Row({
           {saving ? "儲存中…" : "儲存"}
         </button>
         {saved && <span className="text-xs text-up">已儲存 ✓</span>}
+        {error && <span role="alert" className="text-xs text-down">{error}</span>}
       </div>
     </div>
   );
