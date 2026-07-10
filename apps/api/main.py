@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session
 
@@ -27,6 +27,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def cache_public_reads(request: Request, call_next):
+    """Let Vercel's edge serve short-lived public reads without waking Python.
+
+    Sentinel is currently a single-tenant public API. Keep mutation and cron
+    endpoints uncached; the short TTL bounds staleness after each 5-minute scan.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    cacheable = path in {"/signals", "/watchlist", "/rules", "/health"} or path.startswith("/candles/")
+    if request.method == "GET" and response.status_code == 200 and cacheable:
+        ttl = 300 if path.startswith("/candles/") else 30
+        response.headers["Cache-Control"] = f"public, s-maxage={ttl}, stale-while-revalidate={ttl * 4}"
+    return response
 
 app.include_router(watchlist.router)
 app.include_router(rules.router)

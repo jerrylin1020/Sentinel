@@ -11,7 +11,7 @@ import {
 } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const CANDLES_API = "/api/backend/candles";
 
 export type ChartMarker = SeriesMarker<Time>;
 
@@ -94,7 +94,7 @@ export function CandleChart({
     if (onMarkerClick) chart.subscribeClick(handleClick);
 
     let disposed = false;
-    fetch(`${BASE}/candles/${encodeURIComponent(ticker)}?timeframe=${timeframe}`)
+    fetch(`${CANDLES_API}/${encodeURIComponent(ticker)}?timeframe=${timeframe}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
         // A stale effect (e.g. React StrictMode's dev-mode double-invoke, or a fast

@@ -27,7 +27,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, "Noto Sans TC", system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -56,20 +56,20 @@ body {
   .app-shell { @apply min-h-screen bg-bg; }
   .app-main { @apply min-w-0 bg-bg; }
   .page-heading { @apply flex items-center justify-between gap-4 border-b border-border px-6 py-3.5; }
-  .page-heading h1 { @apply m-0 text-lg font-semibold tracking-tight text-text; }
-  .page-heading p { @apply mt-0.5 text-xs text-text-dim; }
-  .toolbar-button { @apply inline-flex items-center gap-1.5 rounded-md border border-border-light bg-panel px-3 py-1.5 text-xs font-medium text-text transition-colors hover:bg-panel-2; }
+  .page-heading h1 { @apply m-0 text-xl font-semibold tracking-tight text-text; }
+  .page-heading p { @apply mt-0.5 text-[13px] text-text-dim; }
+  .toolbar-button { @apply inline-flex items-center gap-1.5 rounded-md border border-border-light bg-panel px-3 py-1.5 text-[13px] font-medium text-text transition-colors hover:bg-panel-2; }
   .toolbar-button-primary { @apply border-cyan bg-cyan font-semibold text-bg hover:bg-blue; }
-  .rail-link { @apply flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-text-dim transition-colors hover:bg-panel hover:text-text; }
+  .rail-link { @apply flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-text-dim transition-colors hover:bg-panel hover:text-text; }
   .rail-link-active { @apply bg-panel-2 text-text; }
   .rail-count { @apply ml-auto rounded-full bg-panel px-1.5 py-0.5 font-mono text-[10px] text-text-faint; }
   .rail-link-active .rail-count { background: color-mix(in srgb, var(--cyan) 10%, transparent); color: var(--cyan); }
   .stat-block { @apply bg-bg px-5 py-4; }
-  .stat-label { @apply text-[11px] font-medium text-text-dim; }
-  .stat-value { @apply mt-1.5 text-[28px] font-semibold leading-none tracking-tight; }
-  .stat-detail { @apply mt-1.5 font-mono text-[11px] text-text-faint; }
+  .stat-label { @apply text-xs font-medium text-text-dim; }
+  .stat-value { @apply mt-1.5 text-[30px] font-semibold leading-none tracking-tight; }
+  .stat-detail { @apply mt-1.5 font-mono text-xs text-text-faint; }
   .panel-flat { @apply border border-border bg-panel; }
-  .section-label { @apply text-[11px] font-semibold uppercase tracking-[0.1em] text-text-dim; }
+  .section-label { @apply text-xs font-semibold uppercase tracking-[0.1em] text-text-dim; }
 }
 
 @media (min-width: 1024px) {
@@ -84,4 +84,9 @@ body {
   .rail-navigation > div { display: flex; gap: 4px; padding: 0 12px 10px; }
   .rail-navigation .section-label { display: none; }
   .rail-link { flex: 0 0 auto; }
+}
+
+.signal-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 72px;
 }

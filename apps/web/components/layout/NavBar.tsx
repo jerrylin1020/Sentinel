@@ -34,8 +34,8 @@ export function NavBar() {
           })}
           <div className="rail-extra">
             <p className="section-label mb-1 px-2.5 pt-5">Alerts</p>
-            <span className="rail-link"><BellIcon /><span>P1 today</span><span className="rail-count bg-p1/10 text-p1">6</span></span>
-            <span className="rail-link"><CalendarIcon /><span>Digest</span></span>
+            <Link href="/signals?severity=p1" className="rail-link"><BellIcon /><span>P1 today</span><span className="rail-count bg-p1/10 text-p1">P1</span></Link>
+            <Link href="/signals?view=digest" className="rail-link"><CalendarIcon /><span>Digest</span></Link>
           </div>
         </div>
       </nav>

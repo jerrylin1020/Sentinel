@@ -7,7 +7,10 @@ const MUTATION_PROXY = "/api/backend";
 
 async function get<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
+    const tag = `sentinel:${path.split("?")[0]}`;
+    const res = await fetch(`${BASE}${path}`, {
+      next: { revalidate: 30, tags: [tag] },
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -102,7 +105,8 @@ export interface ApiWatched {
   };
 }
 
-export const getSignals = () => get<ApiSignal[]>("/signals").then((d) => d ?? []);
+export const getSignals = (severity?: Severity) =>
+  get<ApiSignal[]>(`/signals${severity ? `?severity=${severity}` : ""}`).then((d) => d ?? []);
 export const getRules = () => get<ApiRule[]>("/rules").then((d) => d ?? []);
 export const getWatchlist = () => get<ApiWatched[]>("/watchlist").then((d) => d ?? []);
 
