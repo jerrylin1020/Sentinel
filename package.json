@@ -4,7 +4,7 @@
   "private": true,
   "description": "Sentinel — your radar for market anomalies",
   "scripts": {
-    "dev:web": "pnpm --filter @sentinel/web dev",
+    "dev:web": "bash scripts/dev-web.sh",
     "build:web": "pnpm --filter @sentinel/web build"
   },
   "packageManager": "pnpm@11.8.0"

@@ -34,6 +34,8 @@ export function WatchlistManager({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [removedIds, setRemovedIds] = useState<Set<number>>(() => new Set());
+  const visibleItems = initial.filter((item) => !removedIds.has(item.watched.id));
 
   // Add-symbol form state
   const [ticker, setTicker] = useState("");
@@ -117,6 +119,7 @@ export function WatchlistManager({
     setError(null);
     try {
       await apiDelete(`/watchlist/${id}`);
+      setRemovedIds((current) => new Set(current).add(id));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "刪除標的失敗，請稍後再試。");
@@ -126,7 +129,9 @@ export function WatchlistManager({
   }
 
   return (
-    <div className="space-y-4 p-6">
+    <div>
+      <header className="page-heading"><div><h1>觀察名單</h1><p>{visibleItems.length} 個標的 · 管理個別告警門檻與推播通路</p></div></header>
+      <div className="space-y-4 p-6">
       <form onSubmit={addSymbol} className="flex flex-wrap items-end gap-3 border-b border-border pb-5">
         <div className="relative flex flex-col gap-1">
           <label htmlFor="watchlist-ticker" className="text-xs uppercase tracking-wider text-text-dim">Ticker</label>
@@ -213,10 +218,11 @@ export function WatchlistManager({
       {error && <p role="alert" className="rounded-md border border-down/40 bg-down/10 px-3 py-2 text-xs text-down">{error}</p>}
 
       <div className="space-y-2">
-        {initial.map((it) => (
+        {visibleItems.map((it) => (
           <Row key={it.watched.id} item={it} allRules={allRules} onRemove={remove} onSaved={() => router.refresh()} />
         ))}
-        {initial.length === 0 && <p className="text-sm text-text-dim">觀察名單是空的，用上面的表單新增。</p>}
+        {visibleItems.length === 0 && <p className="text-sm text-text-dim">觀察名單是空的，用上面的表單新增。</p>}
+      </div>
       </div>
     </div>
   );

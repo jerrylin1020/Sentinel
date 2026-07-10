@@ -38,7 +38,10 @@ async def cache_public_reads(request: Request, call_next):
     """
     response = await call_next(request)
     path = request.url.path
-    cacheable = path in {"/signals", "/watchlist", "/rules", "/health"} or path.startswith("/candles/")
+    # Watchlist is intentionally excluded: mutations are immediately reflected
+    # through the Next.js tagged cache, while a second Vercel edge cache here
+    # can replay deleted rows after a successful DELETE.
+    cacheable = path in {"/signals", "/rules", "/health"} or path.startswith("/candles/")
     if request.method == "GET" and response.status_code == 200 and cacheable:
         ttl = 300 if path.startswith("/candles/") else 30
         response.headers["Cache-Control"] = f"public, s-maxage={ttl}, stale-while-revalidate={ttl * 4}"
