@@ -8,14 +8,8 @@ export default async function DetailPage({ params }: { params: { symbol: string 
   const head = related[0];
   const watched = watchlist.find((w) => w.symbol.ticker === symbol);
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-end gap-4">
-        <h1 className="mono text-3xl font-bold">{symbol}</h1>
-        {head && <span className="mono text-2xl text-text-dim">{head.price.toLocaleString()}</span>}
-      </div>
-
-      <SignalOverlay symbol={symbol} related={related} exchange={watched?.symbol.exchange} />
-    </div>
-  );
+  return <div>
+    <header className="page-heading items-end"><div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-text-faint">{watched?.symbol.exchange || "Market detail"}</p><h1 className="mt-1 font-mono text-[28px]">{symbol}</h1><p>{head?.name || watched?.symbol.name || "市場標的"}</p></div><div className="text-right">{head && <><p className="font-mono text-[28px] font-semibold leading-none text-text">{head.price.toLocaleString()}</p><p className="mt-1 font-mono text-xs text-cyan">Score {head.score.toFixed(1)}</p></>}</div></header>
+    <div className="p-6"><SignalOverlay symbol={symbol} related={related} exchange={watched?.symbol.exchange} /></div>
+  </div>;
 }

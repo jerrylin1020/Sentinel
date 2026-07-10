@@ -57,20 +57,20 @@ export function CandleChart({
     setError(false);
 
     const chart = createChart(el, {
-      layout: { background: { type: ColorType.Solid, color: "#0f1422" }, textColor: "#7a839a" },
-      grid: { vertLines: { color: "#1e2638" }, horzLines: { color: "#1e2638" } },
-      rightPriceScale: { borderColor: "#1e2638" },
-      timeScale: { borderColor: "#1e2638" },
+      layout: { background: { type: ColorType.Solid, color: "#111418" }, textColor: "#8b95a4" },
+      grid: { vertLines: { color: "#22272e" }, horzLines: { color: "#22272e" } },
+      rightPriceScale: { borderColor: "#22272e" },
+      timeScale: { borderColor: "#22272e" },
       width: el.clientWidth,
       height: 320,
       autoSize: true,
     });
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#00d97e",
-      downColor: "#ff3b58",
+      upColor: "#4ade80",
+      downColor: "#f87171",
       borderVisible: false,
-      wickUpColor: "#00d97e",
-      wickDownColor: "#ff3b58",
+      wickUpColor: "#4ade80",
+      wickDownColor: "#f87171",
     });
 
     // Markers can share the same date (multiple signals same day); index them by time

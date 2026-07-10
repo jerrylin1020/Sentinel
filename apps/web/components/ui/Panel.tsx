@@ -10,14 +10,14 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-md border border-border bg-panel ${className}`}>
+    <section className={`rounded-lg border border-border bg-panel ${className}`}>
       {title && (
-        <header className="flex items-center justify-between border-b border-border bg-panel-2 px-3 py-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-text-dim">{title}</h2>
+        <header className="flex items-center justify-between border-b border-border bg-panel-2 px-4 py-2.5">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-dim">{title}</h2>
           {action}
         </header>
       )}
-      <div className="p-3">{children}</div>
+      <div className="p-4">{children}</div>
     </section>
   );
 }

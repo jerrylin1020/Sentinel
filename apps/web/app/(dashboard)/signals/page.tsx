@@ -1,62 +1,13 @@
 import Link from "next/link";
-import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, getSignals } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
 import { fmtDateTime } from "@/lib/format";
 
-function fmtTime(iso: string) {
-  return fmtDateTime(iso);
-}
-
 export default async function SignalsPage() {
   const signals = await getSignals();
-
-  return (
-    <Panel title={`Signals · 所有觸發訊號 (${signals.length})`}>
-      {signals.length === 0 ? (
-        <p className="py-6 text-center text-sm text-text-dim">
-          目前沒有訊號。cron 每 5 分鐘掃描一次，市場出現異常時這裡會自動出現。
-        </p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-text-dim">
-              <th className="py-2">Sev</th>
-              <th>Ticker</th>
-              <th>Score</th>
-              <th>Rules</th>
-              <th className="text-right">Price</th>
-              <th className="text-right">Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {signals.map((s) => (
-              <tr key={s.id} className="border-b border-border hover:bg-panel-2">
-                <td className="py-2">
-                  <Tag className={severityColor[s.severity]}>{s.severity}</Tag>
-                </td>
-                <td>
-                  <Link href={`/detail/${s.ticker}#signal-${s.id}`} className="mono font-semibold hover:text-cyan">
-                    {s.ticker}
-                  </Link>
-                </td>
-                <td className="mono">{s.score.toFixed(1)}</td>
-                <td>
-                  <div className="flex flex-wrap gap-1">
-                    {s.rules.map((r) => (
-                      <Tag key={r.id} className={categoryColor[r.category] ?? "text-text-dim border-border-light"} title={r.detail}>
-                        {r.name}
-                      </Tag>
-                    ))}
-                  </div>
-                </td>
-                <td className="mono text-right">{s.price.toLocaleString()}</td>
-                <td className="mono text-right text-text-faint">{fmtTime(s.triggered_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </Panel>
-  );
+  return <div>
+    <header className="page-heading"><div><h1>訊號</h1><p>所有規則、所有觸發 · 依時間排序</p></div><div className="flex gap-2"><button className="toolbar-button">匯出</button><Link className="toolbar-button toolbar-button-primary" href="/rules">＋ 新增告警</Link></div></header>
+    <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3"><span className="section-label">Severity</span><button className="rounded border border-border-light bg-panel-3 px-2.5 py-1 font-mono text-xs text-text">All</button><button className="rounded border border-border bg-panel px-2.5 py-1 font-mono text-xs text-text-dim">P1</button><button className="rounded border border-border bg-panel px-2.5 py-1 font-mono text-xs text-text-dim">P2</button><span className="ml-auto font-mono text-[11px] text-text-faint">{signals.length} signals</span></div>
+    <div className="px-4 py-3 sm:px-6"><div className="mb-2 flex justify-between"><h2 className="text-sm font-semibold">今日</h2><span className="font-mono text-[11px] text-text-faint">{signals.length} 則</span></div>{signals.length ? <div>{signals.map((s) => <Link key={s.id} href={`/detail/${s.ticker}#signal-${s.id}`} className="grid gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-panel sm:grid-cols-[76px_66px_88px_minmax(0,1fr)_64px] sm:items-center"><time className="font-mono text-[11px] text-text-faint">{fmtDateTime(s.triggered_at)}</time><span className={`h-fit w-fit rounded border px-1.5 py-0.5 font-mono text-[10px] font-bold ${severityColor[s.severity]}`}>{s.severity.toUpperCase()} · {s.score.toFixed(1)}</span><span><strong className="font-mono text-sm">{s.ticker}</strong><small className="ml-1 text-[11px] text-text-faint sm:ml-0 sm:block">{s.name}</small></span><span className="min-w-0 text-xs leading-5 text-text-dim"><strong className="font-medium text-cyan">{s.rules[0]?.name || "Signal"}</strong>{s.rules[0]?.detail ? ` · ${s.rules[0].detail}` : ""}</span><span className="font-mono text-right text-xs text-text">{s.price.toLocaleString()}</span></Link>)}</div> : <p className="py-12 text-center text-sm text-text-dim">目前沒有訊號。</p>}</div>
+  </div>;
 }

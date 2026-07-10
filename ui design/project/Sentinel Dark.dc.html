@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta charset="UTF-8"><title>Sentinel · Dashboard</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet"><style>
+:root{--bg:#0a0c10;--panel:#111418;--panel-2:#171b21;--panel-3:#1d222a;--border:#22272e;--border-2:#2c323a;--text:#e6e8ec;--dim:#8b95a4;--faint:#5a6472;--faintest:#3d454f;--acc:#6ea8fe;--acc-2:#4a80f0;--acc-soft:rgba(110,168,254,.1);--p1:#f87171;--p1-soft:rgba(248,113,113,.12);--p2:#fbbf24;--p2-soft:rgba(251,191,36,.12);--up:#4ade80;--down:#f87171;--up-soft:rgba(74,222,128,.1)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter','Noto Sans TC',system-ui,sans-serif;font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum","ss01"}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+a{color:var(--acc);text-decoration:none}a:hover{color:var(--text)}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0;font-size:inherit}
+.up{color:var(--up)}.dn,.down{color:var(--down)}.dim{color:var(--dim)}.faint{color:var(--faint)}
+/* app shell */
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.rail{background:var(--bg);border-right:1px solid var(--border);padding:18px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
+.brand .logo{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#6ea8fe,#4a80f0);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#0a0c10;letter-spacing:-.02em}
+.brand .nm{font-weight:700;font-size:16px;letter-spacing:-.01em}
+.brand .ver{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);background:var(--panel-2);padding:2px 6px;border-radius:4px;margin-left:auto}
+.cmd{margin:0 4px;padding:8px 10px;background:var(--panel);border:1px solid var(--border);border-radius:7px;color:var(--dim);font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:border-color .15s}
+.cmd:hover{border-color:var(--border-2)}
+.cmd .kbd{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 5px;background:var(--panel-2);border:1px solid var(--border);border-radius:3px;color:var(--faint)}
+.nav{display:flex;flex-direction:column;gap:1px;padding:0 4px}
+.nav-lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:12px 10px 4px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;font-size:13px;color:var(--dim);cursor:pointer;font-weight:500;transition:background .1s,color .1s}
+.nav-item:hover{background:var(--panel);color:var(--text)}
+.nav-item.active{background:var(--panel-2);color:var(--text)}
+.nav-item .ic{width:16px;height:16px;flex-shrink:0;opacity:.8}
+.nav-item .cnt{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);background:var(--panel);padding:1px 6px;border-radius:10px}
+.nav-item.active .cnt{background:var(--acc-soft);color:var(--acc)}
+.nav-item.p1 .cnt{background:var(--p1-soft);color:var(--p1)}
+.rail-foot{margin-top:auto;padding:12px 10px;border-top:1px solid var(--border);font-size:11px;color:var(--dim)}
+.rail-foot .live{display:inline-flex;align-items:center;gap:6px;color:var(--up)}
+.rail-foot .live::before{content:'';width:6px;height:6px;background:var(--up);border-radius:50%;box-shadow:0 0 8px var(--up);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.avatar{display:flex;align-items:center;gap:10px;padding:8px 6px;margin-top:10px;border-radius:6px;cursor:pointer}
+.avatar:hover{background:var(--panel)}
+.avatar .a{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#c026d3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff}
+.avatar .u{flex:1;font-size:12px}
+.avatar .u .n{font-weight:600;color:var(--text)}
+.avatar .u .p{color:var(--faint);font-size:10px}
+/* main */
+.main{background:var(--bg);min-width:0;display:flex;flex-direction:column}
+.pageHeader{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:5}
+.pageTitle h1{font-size:18px;font-weight:600;margin:0;letter-spacing:-.01em;color:var(--text)}
+.pageTitle .sub{font-size:12px;color:var(--dim);margin-top:2px}
+.pageHeader .r{display:flex;gap:8px;align-items:center}
+.btn{padding:6px 12px;border:1px solid var(--border-2);background:var(--panel);color:var(--text);border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--panel-2)}
+.btn.p{background:var(--acc);border-color:var(--acc);color:#0a0c10;font-weight:600}
+.btn.p:hover{background:var(--acc-2);border-color:var(--acc-2);color:#0a0c10}
+.btn.g{background:transparent;color:var(--dim);border-color:transparent}
+.btn.g:hover{background:var(--panel);color:var(--text)}
+.btn.icn{padding:6px 8px}
+.view{display:none;flex-direction:column;min-height:0}
+.view.active{display:flex}
+/* tickers strip */
+.tickers{display:flex;gap:22px;padding:8px 24px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;overflow-x:auto;white-space:nowrap;background:var(--bg)}
+.tickers .t{display:inline-flex;gap:6px;align-items:baseline}
+.tickers .sym{color:var(--faint);font-size:10px;letter-spacing:.08em}
+.tickers .px{color:var(--text);font-weight:500}
+/* stat row */
+.stats{display:grid;grid-template-columns:repeat(4,1fr) 1.3fr;gap:1px;background:var(--border)}
+.stat{background:var(--bg);padding:16px 20px}
+.stat .l{font-size:11px;color:var(--dim);font-weight:500}
+.stat .v{font-size:28px;font-weight:600;letter-spacing:-.02em;margin-top:6px;line-height:1}
+.stat .d{font-size:11px;color:var(--faint);margin-top:6px;font-family:'JetBrains Mono',monospace}
+.stat .d .u{color:var(--up)}
+.stat.p1c .v{color:var(--p1)}.stat.p2c .v{color:var(--p2)}
+.stat.cad{display:flex;flex-direction:column;justify-content:space-between}
+/* dashboard split */
+.dash-main{display:grid;grid-template-columns:2fr 1fr;gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.dash-main > *{background:var(--bg);padding:22px 24px;min-height:0}
+.lede{display:flex;flex-direction:column;gap:14px}
+.lede .top{display:flex;justify-content:space-between;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;letter-spacing:.02em;background:var(--p1-soft);color:var(--p1)}
+.badge::before{content:'';width:6px;height:6px;background:currentColor;border-radius:50%;box-shadow:0 0 6px currentColor}
+.badge.p2{background:var(--p2-soft);color:var(--p2)}
+.lede .meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+.lede h1{font-size:26px;font-weight:600;letter-spacing:-.015em;line-height:1.25;margin:0;color:var(--text)}
+.lede .sub{font-size:13.5px;color:var(--dim);line-height:1.55;margin:0}
+.lede .sub .hl{color:var(--text);font-weight:500}
+.pxrow{display:grid;grid-template-columns:auto auto 1fr auto;gap:26px;align-items:end;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.pxrow .px{font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1;font-family:'JetBrains Mono',monospace}
+.pxrow .chg{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600}
+.pxrow .metrics{display:flex;gap:22px}
+.pxrow .metric .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.pxrow .metric .v{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;margin-top:3px}
+.pxrow .metric .v.acc{color:var(--p1)}
+.verdict{padding:14px 16px;background:linear-gradient(135deg,rgba(110,168,254,.08),rgba(110,168,254,.02));border:1px solid rgba(110,168,254,.22);border-radius:8px}
+.verdict .l{font-size:10px;color:var(--acc);text-transform:uppercase;letter-spacing:.1em;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.verdict .l::before{content:'✦';color:var(--acc)}
+.verdict p{margin:0;font-size:13.5px;line-height:1.55;color:var(--text)}
+.verdict p em{color:var(--acc);font-style:normal;font-weight:500}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.spark{width:100%;height:60px;margin-top:4px}
+/* briefs */
+.briefs h3{font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin:0 0 14px;display:flex;justify-content:space-between;align-items:baseline}
+.briefs h3 .n{color:var(--faint);letter-spacing:.05em}
+.brief{display:grid;grid-template-columns:34px 1fr auto;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);align-items:center;cursor:pointer}
+.brief:hover .txt{color:var(--text)}
+.brief:last-child{border-bottom:none}
+.brief .sym{font-weight:700;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text)}
+.brief .txt{font-size:12.5px;color:var(--text);line-height:1.4;transition:color .15s}
+.brief .txt .m{color:var(--faint);font-size:10px;font-family:'JetBrains Mono',monospace;margin-top:2px}
+.brief .sc{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--p1);padding:3px 6px;border-radius:4px;background:var(--p1-soft);white-space:nowrap}
+.brief .sc.p2{color:var(--p2);background:var(--p2-soft)}
+/* second row */
+.dash-2{display:grid;grid-template-columns:1.3fr 1fr;gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.dash-2 > *{background:var(--bg);padding:22px 24px}
+.blk h4{font-size:11px;font-weight:600;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin:0 0 14px;display:flex;justify-content:space-between;align-items:baseline}
+.blk h4 .n{color:var(--faint);letter-spacing:.05em;font-weight:500}
+/* heat */
+.heat{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:52px;gap:3px}
+.heat .c{border-radius:5px;padding:7px 9px;display:flex;flex-direction:column;justify-content:space-between;font-size:10px;cursor:pointer;transition:transform .12s}
+.heat .c:hover{transform:scale(1.03);z-index:2;position:relative}
+.heat .c.big{grid-column:span 2;grid-row:span 2}
+.heat .c.big .n{font-size:12px}
+.heat .c.big .p{font-size:22px}
+.heat .n{font-weight:600;letter-spacing:.02em;color:var(--text)}
+.heat .p{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px}
+.h-u3{background:rgba(74,222,128,.28)}.h-u2{background:rgba(74,222,128,.18)}.h-u1{background:rgba(74,222,128,.1)}
+.h-d3{background:rgba(248,113,113,.28)}.h-d2{background:rgba(248,113,113,.18)}.h-d1{background:rgba(248,113,113,.1)}
+.h-f{background:rgba(139,149,164,.1)}
+.heat-legend{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);margin-top:12px;justify-content:flex-end}
+.heat-legend .bar{width:120px;height:5px;border-radius:3px;background:linear-gradient(to right,rgba(248,113,113,.4),rgba(139,149,164,.15),rgba(74,222,128,.4))}
+/* type breakdown */
+.types{display:flex;flex-direction:column;gap:8px}
+.type{display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:center;padding:7px 10px;background:var(--panel);border-radius:6px}
+.type .sw{width:8px;height:8px;border-radius:2px}
+.type .nm{font-size:12.5px;color:var(--text)}
+.type .rgt{display:flex;align-items:center;gap:10px}
+.type .bar{width:80px;height:5px;background:var(--panel-3);border-radius:3px;overflow:hidden}
+.type .bar > i{display:block;height:100%;border-radius:3px}
+.type .v{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;min-width:24px;text-align:right}
+/* newswire */
+.wire{display:flex;flex-direction:column}
+.wr{display:grid;grid-template-columns:44px 44px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:baseline;cursor:pointer;transition:background .12s}
+.wr:hover{background:var(--panel)}
+.wr:last-child{border-bottom:none}
+.wr .tm{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint)}
+.wr .tk{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;color:var(--text)}
+.wr.pos .tk{color:var(--up)}.wr.neg .tk{color:var(--down)}
+.wr .hd{font-size:12.5px;color:var(--text);line-height:1.4}
+.wr .src{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);margin-top:2px}
+/* ====== SIGNALS ====== */
+.filters{display:flex;gap:14px;padding:12px 24px;border-bottom:1px solid var(--border);align-items:center;flex-wrap:wrap;background:var(--bg)}
+.filter-grp{display:flex;align-items:center;gap:6px}
+.filter-grp .fl{font-size:11px;color:var(--faint);font-weight:500;margin-right:2px}
+.chip{padding:5px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;border:1px solid var(--border);background:var(--panel);color:var(--dim);cursor:pointer;border-radius:5px;transition:all .12s}
+.chip.active{background:var(--panel-3);color:var(--text);border-color:var(--border-2)}
+.chip:hover:not(.active){border-color:var(--border-2);color:var(--text)}
+.search{padding:6px 10px 6px 30px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;width:200px;border-radius:6px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b95a4' stroke-width='2'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>");background-repeat:no-repeat;background-position:10px center}
+.sel{padding:6px 26px 6px 10px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:12px;border-radius:6px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M0 0l4 6 4-6z' fill='%238b95a4'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
+.day-hd{padding:18px 24px 8px;display:flex;align-items:baseline;justify-content:space-between}
+.day-hd .day{font-size:14px;font-weight:600}
+.day-hd .day .d{color:var(--faint);font-weight:400;margin-left:6px;font-family:'JetBrains Mono',monospace;font-size:11px}
+.day-hd .cnt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+.sig-list{padding:0 24px 12px}
+.sig{display:grid;grid-template-columns:64px 44px 1.2fr 2.4fr 96px 76px 84px 30px;gap:16px;padding:14px 12px;align-items:center;cursor:pointer;border-radius:8px;transition:background .12s;margin:2px -12px}
+.sig:hover{background:var(--panel)}
+.sig .tm{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint)}
+.sig .lvl{display:flex;align-items:center;gap:8px}
+.sig .lvl .dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px currentColor}
+.sig .lvl.p1{color:var(--p1)}
+.sig .lvl.p2{color:var(--p2)}
+.sig .lvl .sc{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px}
+.sig .symc{display:flex;flex-direction:column;gap:2px}
+.sig .symc .s{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;letter-spacing:-.005em}
+.sig .symc .nm{font-size:11px;color:var(--faint)}
+.sig .verd{font-size:13px;line-height:1.4;color:var(--text)}
+.sig .verd em{font-style:normal;color:var(--dim);font-weight:400}
+.sig .verd .k{font-weight:600;color:var(--acc)}
+.sig .verd.p2 .k{color:var(--p2)}
+.sig .px{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;text-align:right}
+.sig .chg{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;text-align:right}
+.sig .chan{display:flex;gap:3px}
+.sig .chan span{width:22px;height:22px;background:var(--panel);border:1px solid var(--border);border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--faint)}
+.sig .chan span.on{background:var(--acc-soft);color:var(--acc);border-color:transparent}
+.sig .arw{color:var(--faint);text-align:center}
+.sig:hover .arw{color:var(--acc)}
+/* ====== WATCHLIST ====== */
+.wl{display:grid;grid-template-columns:220px 1fr 340px;gap:1px;background:var(--border);flex:1;min-height:0}
+.wl > *{background:var(--bg);padding:18px 18px;min-height:0}
+.wl-groups h5{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:18px 4px 6px}
+.wl-groups h5:first-of-type{margin-top:0}
+.grp{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;font-size:13px;color:var(--dim);cursor:pointer;border-radius:6px}
+.grp:hover{background:var(--panel);color:var(--text)}
+.grp.active{background:var(--panel-2);color:var(--text)}
+.grp .c{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);background:var(--panel);padding:1px 6px;border-radius:10px}
+.grp.active .c{background:var(--acc-soft);color:var(--acc)}
+.wl-mid{padding:0;overflow-y:auto}
+.wl-tb{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border)}
+.wl-tb .l{display:flex;align-items:baseline;gap:12px}
+.wl-tb .l .t{font-size:16px;font-weight:600}
+.wl-tb .l .c{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint)}
+.wl-tb .r{display:flex;gap:6px;align-items:center}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;padding:11px 14px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;white-space:nowrap}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tr{cursor:pointer;transition:background .1s}
+.tbl tr:hover td{background:var(--panel)}
+.tbl tr.selected td{background:var(--panel-2)}
+.tbl .sy{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px}
+.tbl .sn{font-size:10px;color:var(--faint)}
+.tbl .num{font-family:'JetBrains Mono',monospace;text-align:right}
+.tbl .ctr{text-align:center}
+.pill{display:inline-block;padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;border-radius:10px}
+.pill.p1{background:var(--p1-soft);color:var(--p1)}
+.pill.p2{background:var(--p2-soft);color:var(--p2)}
+.pill.eq{background:rgba(110,168,254,.1);color:var(--acc)}
+.pill.cx{background:rgba(251,191,36,.08);color:#e0a336}
+.pill.mute{background:transparent;color:var(--faint);border:1px dashed var(--border-2)}
+/* wl detail */
+.wl-detail{background:var(--panel);border-left:1px solid var(--border);padding:22px 22px;overflow-y:auto}
+.wl-detail .hd{display:flex;justify-content:space-between;align-items:baseline}
+.wl-detail h3{margin:0;font-size:22px;font-weight:600;letter-spacing:-.01em}
+.wl-detail .sub{font-size:11px;color:var(--faint);margin-top:2px}
+.pxbig{display:flex;align-items:baseline;gap:10px;margin-top:14px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.pxbig .p{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:22px}
+.pxbig .c{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px}
+.pxbig .v{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);margin-left:auto}
+.fld{margin-top:16px}
+.fld .lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:baseline}
+.fld .lbl a{font-size:10px;letter-spacing:.05em;text-transform:none}
+.slider-row{display:flex;align-items:center;gap:10px;margin:4px 0}
+.slider-row .n{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;min-width:34px;text-align:right}
+.slider{flex:1;height:4px;background:var(--panel-3);position:relative;border-radius:2px}
+.slider .fill{position:absolute;left:0;top:0;height:100%;background:var(--acc);border-radius:2px}
+.slider .knob{width:12px;height:12px;background:var(--acc);border-radius:50%;position:absolute;top:-4px;transform:translateX(-50%);box-shadow:0 0 0 3px rgba(110,168,254,.15)}
+.hint{font-size:11px;color:var(--faint);margin-top:4px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.chk{display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;color:var(--text)}
+.chk .box{width:14px;height:14px;border:1.5px solid var(--border-2);border-radius:3px;background:transparent;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.chk.on .box{background:var(--acc);border-color:var(--acc)}
+.chk.on .box::after{content:'✓';color:#0a0c10;font-size:10px;font-weight:800}
+.chk.dis{opacity:.4;cursor:not-allowed}
+.chan-list{display:flex;flex-direction:column;gap:6px}
+.chan-item{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--panel-2);border:1px solid var(--border);border-radius:6px}
+.chan-item .n{font-size:12.5px;font-weight:500}
+.chan-item .s{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint)}
+.chan-item.on .s{color:var(--up)}
+/* ====== DETAIL ====== */
+.det-hero{padding:22px 24px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:1fr auto;gap:20px;align-items:end}
+.det-hero .l h1{margin:6px 0 4px;font-size:28px;font-weight:600;letter-spacing:-.015em;line-height:1;color:var(--text)}
+.det-hero .l h1 .s{font-family:'JetBrains Mono',monospace;font-weight:700;margin-right:12px;letter-spacing:-.01em}
+.det-hero .l .sub{font-size:12.5px;color:var(--dim)}
+.det-hero .r{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.det-hero .r .px{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:34px;letter-spacing:-.02em;line-height:1}
+.det-hero .r .chg{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:16px}
+.det-hero .r .btns{display:flex;gap:6px}
+.det-tabs{display:flex;padding:0 24px;border-bottom:1px solid var(--border);gap:2px;background:var(--bg);position:sticky;top:0;z-index:4}
+.det-tab{padding:10px 14px;font-size:12.5px;font-weight:500;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.det-tab.active{color:var(--text);border-bottom-color:var(--acc)}
+.det-tab:hover:not(.active){color:var(--text)}
+.det-body{display:grid;grid-template-columns:1fr 340px;gap:1px;background:var(--border);flex:1}
+.det-body > *{background:var(--bg);padding:22px 24px}
+.det-verdict{margin-bottom:18px}
+.det-chart-hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.det-chart-hd .ttl{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.det-tf{display:flex;gap:2px}
+.tf{padding:5px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);border-radius:4px;cursor:pointer}
+.tf:hover{background:var(--panel)}
+.tf.active{background:var(--panel-2);color:var(--text)}
+.det-chart{width:100%;height:340px;background:linear-gradient(180deg,var(--panel) 0%,var(--bg) 100%);border:1px solid var(--border);border-radius:8px}
+.trig{margin-top:22px}
+.trig h4{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin:0 0 12px}
+.trig-r{display:grid;grid-template-columns:14px 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center}
+.trig-r:last-child{border-bottom:none}
+.trig-r .sw{width:8px;height:8px;border-radius:2px}
+.trig-r .d{font-size:13px;line-height:1.4}
+.trig-r .d em{font-style:normal;color:var(--dim)}
+.trig-r .c{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;color:var(--dim)}
+.trig-r .c .n{color:var(--text);font-weight:700;font-size:14px}
+.trig-total{display:flex;justify-content:flex-end;padding:14px 0 0;font-size:14px;gap:10px;align-items:baseline}
+.trig-total .v{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;color:var(--acc)}
+.det-side{background:var(--panel)}
+.side-blk{margin-bottom:22px}
+.side-blk h4{font-size:10px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.kv{display:flex;justify-content:space-between;padding:6px 0;font-size:12.5px}
+.kv .k{color:var(--dim)}
+.kv .v{font-family:'JetBrains Mono',monospace;font-weight:600}
+.mn{padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.mn:last-child{border-bottom:none}
+.mn:hover .hd{color:var(--acc)}
+.mn .tm{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint)}
+.mn .hd{font-size:13px;line-height:1.4;margin-top:3px;color:var(--text);transition:color .12s}
+.mn.pos{border-left:2px solid var(--up);padding-left:10px;border-bottom-color:var(--border)}
+.mn.neg{border-left:2px solid var(--down);padding-left:10px;border-bottom-color:var(--border)}
+.mn.neu{border-left:2px solid var(--faint);padding-left:10px;border-bottom-color:var(--border)}
+/* ====== RULES ====== */
+.rules-intro{padding:22px 24px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:2fr 1fr;gap:22px;align-items:end}
+.rules-intro h2{font-size:22px;font-weight:600;margin:0;letter-spacing:-.015em}
+.rules-intro p{font-size:13.5px;color:var(--dim);line-height:1.55;margin:8px 0 0;max-width:600px}
+.rs-sum{display:flex;gap:22px;justify-content:flex-end}
+.rs{text-align:right}
+.rs .n{font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.rs .l{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:4px;font-weight:600}
+.rc-hd{padding:20px 24px 8px}
+.rc-hd h3{font-size:16px;font-weight:600;margin:0 0 2px}
+.rc-hd .d{font-size:12px;color:var(--dim);margin-bottom:12px}
+.rc-list{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 24px 20px}
+.rcd{background:var(--panel);border:1px solid var(--border);padding:16px 18px;border-radius:8px;position:relative;transition:border-color .15s}
+.rcd:hover{border-color:var(--border-2)}
+.rcd.off{opacity:.55}
+.rcd .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
+.rcd .nm{font-size:14px;font-weight:600;line-height:1.2}
+.rcd .dsc{font-size:12px;color:var(--dim);line-height:1.5;margin:0 0 12px}
+.toggle{width:32px;height:18px;background:var(--panel-3);border-radius:20px;position:relative;cursor:pointer;transition:background .15s;flex-shrink:0}
+.toggle::after{content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;background:var(--text);border-radius:50%;transition:left .15s}
+.toggle.on{background:var(--acc)}
+.toggle.on::after{left:16px;background:#0a0c10}
+.rc-stats{padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rc-stats .kv{display:flex;flex-direction:column;padding:0}
+.rc-stats .kv .k{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.rc-stats .kv .v{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;margin-top:2px}
+.rc-stats .kv .v.good{color:var(--up)}
+.rc-stats .kv .v.bad{color:var(--down)}
+.rc-params{padding:10px 0 0;margin-top:10px;border-top:1px dashed var(--border);display:flex;gap:8px;flex-wrap:wrap}
+.rc-params .p{display:flex;align-items:center;gap:5px;font-size:11px}
+.rc-params .p .l{color:var(--faint);letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.rc-params .p .v{font-family:'JetBrains Mono',monospace;font-weight:600;padding:2px 6px;background:var(--panel-2);border:1px solid var(--border);border-radius:4px;color:var(--text)}
+/* ⌘K palette */
+.cmdk-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding-top:120px;z-index:100;opacity:0;pointer-events:none;transition:opacity .15s}
+.cmdk-overlay.open{opacity:1;pointer-events:auto}
+.cmdk{width:560px;background:var(--panel);border:1px solid var(--border-2);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5);overflow:hidden}
+.cmdk-in{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.cmdk-in input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit}
+.cmdk-in input::placeholder{color:var(--faint)}
+.cmdk-list{max-height:340px;overflow-y:auto;padding:6px}
+.cmdk-grp{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);padding:8px 10px 4px;font-weight:600}
+.cmdk-i{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;font-size:13px;cursor:pointer}
+.cmdk-i:hover,.cmdk-i.hi{background:var(--panel-2)}
+.cmdk-i .ic{width:16px;color:var(--dim)}
+.cmdk-i .nm{flex:1;color:var(--text)}
+.cmdk-i .sh{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--faint);padding:2px 6px;background:var(--panel-3);border-radius:3px}
+/* scrollbar */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+/* zh */
+.zh,.en{display:none}
+html[lang="zh-TW"] .zh,html:not([lang="en"]) .zh{display:inline}
+html[lang="en"] .en{display:inline}
+</style></helmet><div class="app">
+<aside class="rail"><div class="brand"><div class="logo">S</div><div class="nm">Sentinel</div><span class="ver">v0.2</span></div><div class="cmd" onclick="openCmdk()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><span class="en">Search or command…</span><span class="zh">搜尋或指令…</span><span class="kbd">⌘K</span></div>
+<div class="nav"><div class="nav-lbl"><span class="en">Overview</span><span class="zh">總覽</span></div>
+<div class="nav-item active" data-view="dashboard"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span class="en">Dashboard</span><span class="zh">儀表板</span></div>
+<div class="nav-item" data-view="signals"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg><span class="en">Signals</span><span class="zh">訊號</span><span class="cnt">12</span></div>
+<div class="nav-item" data-view="watchlist"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span class="en">Watchlist</span><span class="zh">觀察名單</span><span class="cnt">45</span></div>
+<div class="nav-item" data-view="detail"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg><span class="en">Detail</span><span class="zh">深度</span></div>
+<div class="nav-item" data-view="rules"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg><span class="en">Rules</span><span class="zh">規則</span><span class="cnt">12</span></div>
+<div class="nav-lbl"><span class="en">Alerts</span><span class="zh">告警</span></div>
+<div class="nav-item p1"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="en">P1 today</span><span class="zh">今日 P1</span><span class="cnt">6</span></div>
+<div class="nav-item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="M4 9h16"/></svg><span class="en">Digest</span><span class="zh">日報</span></div>
+<div class="nav-item"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="en">History</span><span class="zh">歷史</span></div></div>
+<div class="rail-foot"><div class="live"><span class="en">Scanner live</span><span class="zh">掃描運行中</span></div><div style="margin-top:6px" class="mono">22:14:03 · <span class="en">2,418 scanned</span><span class="zh">2,418 已掃</span></div><div class="avatar"><div class="a">J</div><div class="u"><div class="n">Jerry</div><div class="p">Pro plan</div></div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><path d="M6 9l6 6 6-6"/></svg></div></div></aside>
+
+<div class="main">
+
+<!-- ============ DASHBOARD ============ -->
+<div class="view active" data-view="dashboard">
+<div class="pageHeader"><div class="pageTitle"><h1><span class="en">Dashboard</span><span class="zh">儀表板</span></h1><div class="sub"><span class="en">Saturday, June 21 · Pre-open · 15 min to bell</span><span class="zh">6/21 週六 · 開盤前 · 距開盤 15 分</span></div></div><div class="r"><button class="btn g">↻ <span class="en">Refresh</span><span class="zh">重掃</span></button><button class="btn"><span class="en">Export digest</span><span class="zh">匯出日報</span></button><button class="btn p"><span class="en">Configure alerts</span><span class="zh">告警設定</span></button></div></div>
+
+<div class="tickers"><span class="t"><span class="sym">SPX</span><span class="px">5,847.21</span><span class="dn">−0.42%</span></span><span class="t"><span class="sym">NDX</span><span class="px">20,914.55</span><span class="dn">−0.78%</span></span><span class="t"><span class="sym">VIX</span><span class="px">17.82</span><span class="up">+3.21%</span></span><span class="t"><span class="sym">DXY</span><span class="px">104.12</span><span class="up">+0.18%</span></span><span class="t"><span class="sym">10Y</span><span class="px">4.28</span><span class="up">+2bp</span></span><span class="t"><span class="sym">BTC</span><span class="px">68,421</span><span class="up">+2.14%</span></span><span class="t"><span class="sym">ETH</span><span class="px">3,512</span><span class="up">+1.87%</span></span><span class="t"><span class="sym">GOLD</span><span class="px">2,614.30</span><span class="up">+0.42%</span></span></div>
+
+<div class="stats"><div class="stat p1c"><div class="l"><span class="en">P1 today</span><span class="zh">今日 P1</span></div><div class="v">12</div><div class="d"><span class="u">+4</span> vs 7d · 9 acted</div></div><div class="stat p2c"><div class="l"><span class="en">P2 today</span><span class="zh">今日 P2</span></div><div class="v">47</div><div class="d"><span class="en">Digest 08:00 TPE</span><span class="zh">日報 08:00 TPE</span></div></div><div class="stat"><div class="l"><span class="en">Symbols hit</span><span class="zh">觸發標的</span></div><div class="v">28<span style="font-size:14px;color:var(--dim)"> / 45</span></div><div class="d"><span class="en">62% of watchlist</span><span class="zh">觀察名單 62%</span></div></div><div class="stat"><div class="l"><span class="en">Avg score</span><span class="zh">平均分數</span></div><div class="v">6.4</div><div class="d"><span class="u">+0.8</span> vs 7d</div></div><div class="stat cad"><div><div class="l"><span class="en">Cadence · 24h</span><span class="zh">節奏 · 24h</span></div><div class="v" style="font-size:22px">2.4<span style="font-size:12px;color:var(--dim)">/hr</span></div></div><svg viewBox="0 0 220 32" width="100%" height="36" preserveAspectRatio="none"><defs><linearGradient id="sp1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#6ea8fe" stop-opacity=".3"/><stop offset="1" stop-color="#6ea8fe" stop-opacity="0"/></linearGradient></defs><polyline points="0,26 15,24 30,26 45,20 60,18 75,20 90,14 105,12 120,16 135,10 150,7 165,10 180,4 195,6 210,3 220,2" fill="none" stroke="#6ea8fe" stroke-width="1.5"/><polyline points="0,26 15,24 30,26 45,20 60,18 75,20 90,14 105,12 120,16 135,10 150,7 165,10 180,4 195,6 210,3 220,2 220,32 0,32" fill="url(#sp1)"/></svg></div></div>
+
+<div class="dash-main"><section class="lede"><div class="top"><span class="badge">P1 · <span class="en">Composite signal</span><span class="zh">合流訊號</span></span><span class="meta">22:08:15 · NASDAQ · $3.47T mcap</span></div>
+<h1><span class="en">NVIDIA breaks 52-week high on triple-confluence</span><span class="zh">NVIDIA 三訊號合流突破 52 週高</span></h1>
+<p class="sub"><span class="en">Volume ran <span class="hl" style="color:var(--text);font-weight:500">3.4× the 20-day average</span> in the last two hours. Dark-pool prints tag institutional accumulation while positive newsflow on a hyperscaler partnership added the final push.</span><span class="zh">過去兩小時成交量達<span class="hl" style="color:var(--text);font-weight:500">近 20 日均量 3.4 倍</span>，暗池成交顯示法人吃貨，加上與大型雲端業者合作利多，三訊號同步觸發 P1。</span></p>
+<div class="pxrow"><span class="px">$142.18</span><span class="chg up">+7.32 · +5.42%</span><div class="metrics"><div class="metric"><div class="l">VOL×</div><div class="v">3.4×</div></div><div class="metric"><div class="l">RSI</div><div class="v">72</div></div><div class="metric"><div class="l">Score</div><div class="v acc">9.2</div></div></div><svg class="spark" viewBox="0 0 400 60" preserveAspectRatio="none"><defs><linearGradient id="sp2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4ade80" stop-opacity=".3"/><stop offset="1" stop-color="#4ade80" stop-opacity="0"/></linearGradient></defs><polyline points="0,44 24,42 48,45 72,40 96,42 120,38 144,36 168,32 192,34 216,28 240,24 264,26 288,20 312,16 336,17 360,10 384,6 400,4" fill="none" stroke="#4ade80" stroke-width="1.5"/><polyline points="0,44 24,42 48,45 72,40 96,42 120,38 144,36 168,32 192,34 216,28 240,24 264,26 288,20 312,16 336,17 360,10 384,6 400,4 400,60 0,60" fill="url(#sp2)"/></svg></div>
+<div class="verdict"><div class="l"><span class="en">Sentinel's read</span><span class="zh">Sentinel 觀點</span></div><p><span class="en">Four rules fired in the same direction within 90 minutes — historically this pattern resolves upward within 3 sessions <em>68%</em> of the time. <em>Consider sizing into any pullback to $138 (prior resistance).</em> Watch 08:30 ET open for volume follow-through.</span><span class="zh">90 分鐘內四條規則同向觸發，歷史上此型態於 3 個交易日內延續走勢的機率為 <em>68%</em>。<em>可留意 138 美元前壓回落再進場的機會。</em>建議關注美東 08:30 開盤能否延續量能。</span></p></div>
+<div class="acts"><button class="btn p" onclick="showView('detail')"><span class="en">Open full story →</span><span class="zh">開啟深度分析 →</span></button><button class="btn">★ <span class="en">Watch</span><span class="zh">追蹤</span></button><button class="btn g">🔕 <span class="en">Mute 4h</span><span class="zh">靜音 4h</span></button><button class="btn g"><span class="en">Send to Telegram</span><span class="zh">傳到 Telegram</span></button></div>
+</section>
+<aside class="briefs"><h3><span><span class="en">Also firing</span><span class="zh">同步觸發</span></span><span class="n">11 <span class="en">more</span><span class="zh">則</span></span></h3>
+<div class="brief"><span class="sym">SOL</span><div class="txt"><span class="en">$42M whale inflow, long green candle</span><span class="zh">$42M 鯨魚流入，長紅 K</span><div class="m">+8.91% · vol 5.1× · 21:42</div></div><span class="sc">P1 · 8.7</span></div>
+<div class="brief"><span class="sym">TSLA</span><div class="txt"><span class="en">Delivery-miss dump, funds cutting exposure</span><span class="zh">交車數不如預期，法人減碼</span><div class="m dn">−6.14% · vol 4.2× · 20:55</div></div><span class="sc">P1 · 8.4</span></div>
+<div class="brief"><span class="sym">ETH</span><div class="txt"><span class="en">Exchange outflow + Bollinger break up</span><span class="zh">交易所流出 + 布林上軌破</span><div class="m">+1.87% · 19:28</div></div><span class="sc">P1 · 8.1</span></div>
+<div class="brief"><span class="sym">AMD</span><div class="txt"><span class="en">200-day reclaim + $3.2M call sweep</span><span class="zh">收復年線 + $3.2M 買權異動</span><div class="m">+4.23% · vol 2.8× · 18:12</div></div><span class="sc">P1 · 7.8</span></div>
+<div class="brief"><span class="sym">BTC</span><div class="txt"><span class="en">SOPR &gt; 1.05, OI spike +18% — profit-taking risk</span><span class="zh">SOPR &gt; 1.05，OI +18% — 需防獲利了結</span><div class="m">+2.14% · 17:30</div></div><span class="sc">P1 · 7.6</span></div>
+<div class="brief"><span class="sym">META</span><div class="txt"><span class="en">Steady institutional accumulation continues</span><span class="zh">法人持續穩定加碼</span><div class="m">+2.31% · vol 2.1× · 15:44</div></div><span class="sc p2">P2 · 6.4</span></div>
+<div class="brief"><span class="sym">AAPL</span><div class="txt"><span class="en">EU DMA probe headline weighs on sentiment</span><span class="zh">歐盟 DMA 調查利空壓抑情緒</span><div class="m dn">−1.12% · 13:48</div></div><span class="sc p2">P2 · 5.8</span></div>
+<div class="brief"><span class="sym">AVAX</span><div class="txt"><span class="en">Active address surge — network usage up</span><span class="zh">活躍地址暴增 — 網路使用率提升</span><div class="m">+3.42% · 14:22</div></div><span class="sc p2">P2 · 5.9</span></div>
+</aside></div>
+
+<div class="dash-2"><div class="blk"><h4><span><span class="en">Sector heat · 1D</span><span class="zh">產業板塊 · 日內</span></span><span class="n"><span class="en">US equities</span><span class="zh">美股</span></span></h4>
+<div class="heat"><div class="c big h-u3"><div class="n">Tech</div><div class="p up">+2.84%</div></div><div class="c h-u2"><div class="n">Comm</div><div class="p up">+1.62%</div></div><div class="c h-u2"><div class="n">Comm Svcs</div><div class="p up">+1.62%</div></div><div class="c h-u1"><div class="n">Fin</div><div class="p up">+0.84%</div></div><div class="c h-u2"><div class="n">Indust</div><div class="p up">+1.18%</div></div><div class="c h-f"><div class="n">Util</div><div class="p dim">+0.12%</div></div><div class="c h-d1"><div class="n">Health</div><div class="p dn">−0.62%</div></div><div class="c h-d2"><div class="n">Energy</div><div class="p dn">−2.14%</div></div><div class="c h-d3"><div class="n">Cons Disc</div><div class="p dn">−3.21%</div></div><div class="c h-d2"><div class="n">Matls</div><div class="p dn">−1.04%</div></div><div class="c h-d1"><div class="n">Staples</div><div class="p dn">−0.34%</div></div><div class="c h-f"><div class="n">Real Est</div><div class="p dim">−0.08%</div></div></div>
+<div class="heat-legend"><span>−5%</span><div class="bar"></div><span>+5%</span></div></div>
+<div class="blk"><h4><span><span class="en">Signal composition</span><span class="zh">訊號組成</span></span><span class="n">59 <span class="en">total today</span><span class="zh">則今日</span></span></h4>
+<div class="types"><div class="type"><span class="sw" style="background:#0ea5e9"></span><div class="nm"><span class="en">Volume spike</span><span class="zh">爆量</span></div><div class="rgt"><div class="bar"><i style="width:80%;background:#0ea5e9"></i></div><div class="v">18</div></div></div><div class="type"><span class="sw" style="background:#f59e0b"></span><div class="nm"><span class="en">Technical breakout</span><span class="zh">技術面突破</span></div><div class="rgt"><div class="bar"><i style="width:62%;background:#f59e0b"></i></div><div class="v">14</div></div></div><div class="type"><span class="sw" style="background:#a78bfa"></span><div class="nm"><span class="en">Institutional flow</span><span class="zh">法人 / 籌碼</span></div><div class="rgt"><div class="bar"><i style="width:48%;background:#a78bfa"></i></div><div class="v">11</div></div></div><div class="type"><span class="sw" style="background:#4ade80"></span><div class="nm"><span class="en">On-chain anomaly</span><span class="zh">鏈上異常</span></div><div class="rgt"><div class="bar"><i style="width:40%;background:#4ade80"></i></div><div class="v">9</div></div></div><div class="type"><span class="sw" style="background:#6ea8fe"></span><div class="nm"><span class="en">News · sentiment</span><span class="zh">新聞情緒</span></div><div class="rgt"><div class="bar"><i style="width:30%;background:#6ea8fe"></i></div><div class="v">7</div></div></div><div class="type"><span class="sw" style="background:#f87171"></span><div class="nm"><span class="en">Candle pattern</span><span class="zh">K 棒型態</span></div><div class="rgt"><div class="bar"><i style="width:22%;background:#f87171"></i></div><div class="v">5</div></div></div></div>
+<h4 style="margin-top:22px"><span><span class="en">Newswire · high impact</span><span class="zh">新聞通訊 · 高影響</span></span><span class="n">7 · 24h</span></h4>
+<div class="wire"><div class="wr pos"><span class="tm">22:08</span><span class="tk">NVDA</span><div><div class="hd"><span class="en">Nvidia announces partnership with hyperscaler for Blackwell</span><span class="zh">輝達宣布與大型雲端業者合作 Blackwell 部署</span></div><div class="src">Reuters · +0.82</div></div></div><div class="wr pos"><span class="tm">21:42</span><span class="tk">SOL</span><div><div class="hd"><span class="en">Solana ETF filing rumours surface; on-chain inflows</span><span class="zh">Solana ETF 傳聞；鏈上偵測法人資金流入</span></div><div class="src">CoinDesk · +0.71</div></div></div><div class="wr neg"><span class="tm">20:55</span><span class="tk">TSLA</span><div><div class="hd"><span class="en">Tesla Q2 deliveries tracking below consensus</span><span class="zh">特斯拉 Q2 交車數低於預期</span></div><div class="src">Bloomberg · −0.68</div></div></div><div class="wr pos"><span class="tm">19:28</span><span class="tk">ETH</span><div><div class="hd"><span class="en">Ethereum spot ETF inflows hit weekly high</span><span class="zh">以太現貨 ETF 週流入創新高</span></div><div class="src">The Block · +0.54</div></div></div></div></div></div>
+</div>
+
+<!-- ============ SIGNALS ============ -->
+<div class="view" data-view="signals">
+<div class="pageHeader"><div class="pageTitle"><h1><span class="en">Signals</span><span class="zh">訊號</span></h1><div class="sub"><span class="en">Every trigger, every rule · sorted by time</span><span class="zh">所有規則、所有觸發 · 依時間排序</span></div></div><div class="r"><button class="btn g">↻</button><button class="btn"><span class="en">Export</span><span class="zh">匯出</span></button><button class="btn p"><span class="en">＋ New alert</span><span class="zh">＋ 新增告警</span></button></div></div>
+<div class="filters"><div class="filter-grp"><span class="fl"><span class="en">Severity</span><span class="zh">等級</span></span><button class="chip active">All</button><button class="chip">P1</button><button class="chip">P2</button><button class="chip"><span class="en">Observe</span><span class="zh">觀察</span></button></div><div class="filter-grp"><span class="fl"><span class="en">Asset</span><span class="zh">類型</span></span><button class="chip active">All</button><button class="chip">Equity</button><button class="chip">Crypto</button></div><div class="filter-grp"><span class="fl"><span class="en">Trigger</span><span class="zh">觸發</span></span><button class="chip active">Any</button><button class="chip">Volume</button><button class="chip">Breakout</button><button class="chip">Flow</button><button class="chip">On-chain</button><button class="chip">News</button></div><div class="filter-grp" style="margin-left:auto"><input class="search" placeholder="Search symbol…"><select class="sel"><option>Today</option><option>Last 24h</option><option>Last 7 days</option></select><select class="sel"><option>Time ↓</option><option>Score ↓</option></select></div></div>
+<div class="day-hd"><div class="day"><span class="en">Today</span><span class="zh">今日</span> <span class="d">Sat, Jun 21</span></div><div class="cnt">38 <span class="en">signals</span><span class="zh">則</span></div></div>
+<div class="sig-list">
+<div class="sig" onclick="showView('detail')"><div class="tm">22:08:15</div><div class="lvl p1"><span class="dot"></span><span class="sc">P1 · 9.2</span></div><div class="symc"><span class="s">NVDA</span><span class="nm">NVIDIA Corp</span></div><div class="verd"><span class="en"><span class="k">52-week high breakout</span> on 3.4× volume with institutional accumulation and <em>positive newsflow on hyperscaler deal</em>.</span><span class="zh"><span class="k">突破 52 週高</span>，量能達 3.4 倍，法人買超加上<em>雲端業者合作利多</em>。</span></div><div class="px">142.18</div><div class="chg up">+5.42%</div><div class="chan"><span class="on">TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">21:42:33</div><div class="lvl p1"><span class="dot"></span><span class="sc">P1 · 8.7</span></div><div class="symc"><span class="s">SOL</span><span class="nm">Solana</span></div><div class="verd"><span class="en"><span class="k">Whale inflow $42M</span> absorbed on 5.1× volume; <em>long green candle</em> closes above 20-day range.</span><span class="zh"><span class="k">鯨魚流入 $42M</span>，量能 5.1 倍，<em>長紅 K</em> 收於 20 日區間之上。</span></div><div class="px">182.45</div><div class="chg up">+8.91%</div><div class="chan"><span class="on">TG</span><span>EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">20:55:09</div><div class="lvl p1"><span class="dot"></span><span class="sc">P1 · 8.4</span></div><div class="symc"><span class="s">TSLA</span><span class="nm">Tesla Inc</span></div><div class="verd"><span class="en"><span class="k">Long red candle on 4.2× volume</span> with institutional selling; <em>negative delivery-miss headlines</em>.</span><span class="zh"><span class="k">4.2 倍量長黑 K</span>，法人賣超，<em>交車數不如預期利空</em>。</span></div><div class="px">248.32</div><div class="chg dn">−6.14%</div><div class="chan"><span class="on">TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">19:28:41</div><div class="lvl p1"><span class="dot"></span><span class="sc">P1 · 8.1</span></div><div class="symc"><span class="s">ETH</span><span class="nm">Ethereum</span></div><div class="verd"><span class="en"><span class="k">Exchange outflow spike</span> with funding rate popping; Bollinger upper break confirms momentum.</span><span class="zh"><span class="k">交易所流出激增</span>，資金費率同步飆，布林上軌突破確認動能。</span></div><div class="px">3,512.40</div><div class="chg up">+1.87%</div><div class="chan"><span class="on">TG</span><span>EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">18:12:55</div><div class="lvl p1"><span class="dot"></span><span class="sc">P1 · 7.8</span></div><div class="symc"><span class="s">AMD</span><span class="nm">AMD</span></div><div class="verd"><span class="en"><span class="k">Reclaims 200-day MA</span> on 2.8× volume; <em>$3.2M call sweep</em> hits the tape 15 minutes later.</span><span class="zh"><span class="k">收復 200 日線</span>，2.8 倍量；15 分鐘後 <em>$3.2M 買權異動</em>。</span></div><div class="px">168.92</div><div class="chg up">+4.23%</div><div class="chan"><span class="on">TG</span><span>EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">17:30:11</div><div class="lvl p1"><span class="dot"></span><span class="sc">P1 · 7.6</span></div><div class="symc"><span class="s">BTC</span><span class="nm">Bitcoin</span></div><div class="verd"><span class="en"><span class="k">SOPR &gt; 1.05</span> with OI spiking +18% — historically a profit-taking zone.</span><span class="zh"><span class="k">SOPR &gt; 1.05</span>，未平倉暴增 18% — 歷史上為獲利了結區。</span></div><div class="px">68,421</div><div class="chg up">+2.14%</div><div class="chan"><span class="on">TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">15:44:02</div><div class="lvl p2"><span class="dot"></span><span class="sc">P2 · 6.4</span></div><div class="symc"><span class="s">META</span><span class="nm">Meta Platforms</span></div><div class="verd p2"><span class="en"><span class="k">Steady institutional accumulation</span> continues; 2.1× volume without headline catalyst.</span><span class="zh"><span class="k">法人穩定加碼</span>，2.1 倍量，無明顯利多催化。</span></div><div class="px">582.14</div><div class="chg up">+2.31%</div><div class="chan"><span>TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">14:22:18</div><div class="lvl p2"><span class="dot"></span><span class="sc">P2 · 5.9</span></div><div class="symc"><span class="s">AVAX</span><span class="nm">Avalanche</span></div><div class="verd p2"><span class="en"><span class="k">Active address surge</span> with 2.4× volume — network usage picking up.</span><span class="zh"><span class="k">活躍地址暴增</span>，量能 2.4 倍 — 網路使用率提升。</span></div><div class="px">38.21</div><div class="chg up">+3.42%</div><div class="chan"><span>TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">13:48:36</div><div class="lvl p2"><span class="dot"></span><span class="sc">P2 · 5.8</span></div><div class="symc"><span class="s">AAPL</span><span class="nm">Apple Inc</span></div><div class="verd p2"><span class="en">Neutral candle but <span class="k">RSI turning down</span>; <em>EU DMA probe headline weighing on sentiment</em>.</span><span class="zh">K 棒中性但 <span class="k">RSI 轉弱</span>；<em>歐盟 DMA 調查拖累市場情緒</em>。</span></div><div class="px">218.40</div><div class="chg dn">−1.12%</div><div class="chan"><span>TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div>
+<div class="sig"><div class="tm">11:15:04</div><div class="lvl p2"><span class="dot"></span><span class="sc">P2 · 5.2</span></div><div class="symc"><span class="s">GOOGL</span><span class="nm">Alphabet</span></div><div class="verd p2"><span class="en"><span class="k">Positive analyst note</span> mid-morning; volume 1.5× — early accumulation possible.</span><span class="zh">上午 <span class="k">分析師利多評論</span>，量能 1.5 倍 — 可能為早期布局。</span></div><div class="px">184.22</div><div class="chg up">+0.84%</div><div class="chan"><span>TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div>
+</div>
+<div class="day-hd" style="margin-top:8px"><div class="day"><span class="en">Yesterday</span><span class="zh">昨日</span> <span class="d">Fri, Jun 20</span></div><div class="cnt">21 <span class="en">signals</span><span class="zh">則</span></div></div>
+<div class="sig-list"><div class="sig"><div class="tm">23:18:41</div><div class="lvl p1"><span class="dot"></span><span class="sc">P1 · 8.9</span></div><div class="symc"><span class="s">BTC</span><span class="nm">Bitcoin</span></div><div class="verd"><span class="en"><span class="k">OI spike +18%</span> with positive newsflow on ETF inflows — momentum extension.</span><span class="zh"><span class="k">未平倉暴增 18%</span>，ETF 資金流入利多同步 — 動能延續。</span></div><div class="px">67,180</div><div class="chg up">+3.24%</div><div class="chan"><span class="on">TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div><div class="sig"><div class="tm">21:04:22</div><div class="lvl p2"><span class="dot"></span><span class="sc">P2 · 6.8</span></div><div class="symc"><span class="s">MSTR</span><span class="nm">MicroStrategy</span></div><div class="verd p2"><span class="en"><span class="k">Volume spike 2.4×</span> tracking BTC rally; retail momentum trade.</span><span class="zh"><span class="k">量能 2.4 倍</span>，跟隨 BTC；散戶動能交易。</span></div><div class="px">1,842</div><div class="chg up">+5.62%</div><div class="chan"><span>TG</span><span class="on">EM</span><span>LN</span></div><div class="arw">→</div></div><div style="padding:16px;text-align:center"><button class="btn g"><span class="en">Load more · 19 signals</span><span class="zh">載入更多 · 19 則</span></button></div></div>
+</div>
+
+<!-- ============ WATCHLIST ============ -->
+<div class="view" data-view="watchlist">
+<div class="pageHeader"><div class="pageTitle"><h1><span class="en">Watchlist</span><span class="zh">觀察名單</span></h1><div class="sub">45 <span class="en">symbols · 8 groups · 12 alerting today</span><span class="zh">標的 · 8 分組 · 今日 12 告警</span></div></div><div class="r"><button class="btn"><span class="en">⇪ Bulk add</span><span class="zh">⇪ 批次新增</span></button><button class="btn p"><span class="en">＋ Add symbol</span><span class="zh">＋ 新增標的</span></button></div></div>
+<div class="wl">
+<aside class="wl-groups"><h5><span class="en">Views</span><span class="zh">檢視</span></h5><div class="grp active"><span><span class="en">All watchlist</span><span class="zh">全部名單</span></span><span class="c">45</span></div><div class="grp"><span><span class="en">P1 today</span><span class="zh">今日 P1</span></span><span class="c">6</span></div><div class="grp"><span><span class="en">Muted</span><span class="zh">已靜音</span></span><span class="c">3</span></div>
+<h5><span class="en">Equity</span><span class="zh">美股</span></h5><div class="grp"><span><span class="en">Tech mega caps</span><span class="zh">科技大型股</span></span><span class="c">8</span></div><div class="grp"><span><span class="en">AI · Semis</span><span class="zh">AI · 半導體</span></span><span class="c">12</span></div><div class="grp"><span><span class="en">EV · Mobility</span><span class="zh">電動車</span></span><span class="c">5</span></div><div class="grp"><span><span class="en">Biotech catalysts</span><span class="zh">生技催化</span></span><span class="c">6</span></div>
+<h5><span class="en">Crypto</span><span class="zh">加密</span></h5><div class="grp"><span><span class="en">Crypto majors</span><span class="zh">主流幣</span></span><span class="c">7</span></div><div class="grp"><span><span class="en">DeFi bluechips</span><span class="zh">DeFi 藍籌</span></span><span class="c">5</span></div><div class="grp"><span><span class="en">AI · Compute coins</span><span class="zh">AI · 算力幣</span></span><span class="c">4</span></div>
+<h5><span class="en">Utility</span><span class="zh">工具</span></h5><div class="grp"><span><span class="en">Earnings this week</span><span class="zh">本週財報</span></span><span class="c">4</span></div><div class="grp"><span style="color:var(--faint)"><span class="en">Archived</span><span class="zh">封存</span></span><span class="c">12</span></div><button class="btn g" style="width:100%;margin-top:12px;justify-content:flex-start"><span class="en">＋ New group</span><span class="zh">＋ 新增分組</span></button></aside>
+<section class="wl-mid"><div class="wl-tb"><div class="l"><span class="t"><span class="en">All watchlist</span><span class="zh">全部名單</span></span><span class="c">45 · <span class="up">12 <span class="en">alerting</span><span class="zh">告警中</span></span></span></div><div class="r"><input class="search" placeholder="Filter…" style="width:160px"><select class="sel"><option>All types</option><option>Equity</option><option>Crypto</option></select></div></div>
+<table class="tbl"><thead><tr><th><span class="en">Symbol</span><span class="zh">標的</span></th><th>Type</th><th class="num">Price</th><th class="num">Chg%</th><th class="ctr">Alerts</th><th class="num">P1 ≥</th><th class="num">Vol ≥</th><th>Channels</th><th><span class="en">Last</span><span class="zh">上次</span></th></tr></thead><tbody>
+<tr class="selected"><td><div class="sy">NVDA</div><div class="sn">NVIDIA Corp</div></td><td><span class="pill eq">EQ</span></td><td class="num">142.18</td><td class="num up">+5.42%</td><td class="ctr"><span class="pill p1">P1</span></td><td class="num">7.5</td><td class="num">2.0×</td><td><span class="mono faint">TG · EM</span></td><td class="mono faint">2m</td></tr>
+<tr><td><div class="sy">SOL</div><div class="sn">Solana</div></td><td><span class="pill cx">CX</span></td><td class="num">182.45</td><td class="num up">+8.91%</td><td class="ctr"><span class="pill p1">P1</span></td><td class="num">7.0</td><td class="num">3.0×</td><td><span class="mono faint">TG</span></td><td class="mono faint">32m</td></tr>
+<tr><td><div class="sy">TSLA</div><div class="sn">Tesla Inc</div></td><td><span class="pill eq">EQ</span></td><td class="num">248.32</td><td class="num dn">−6.14%</td><td class="ctr"><span class="pill p1">P1</span></td><td class="num">7.5</td><td class="num">2.5×</td><td><span class="mono faint">TG · EM</span></td><td class="mono faint">1h</td></tr>
+<tr><td><div class="sy">ETH</div><div class="sn">Ethereum</div></td><td><span class="pill cx">CX</span></td><td class="num">3,512.40</td><td class="num up">+1.87%</td><td class="ctr"><span class="pill p1">P1</span></td><td class="num">7.0</td><td class="num">2.0×</td><td><span class="mono faint">TG</span></td><td class="mono faint">2h</td></tr>
+<tr><td><div class="sy">AMD</div><div class="sn">AMD</div></td><td><span class="pill eq">EQ</span></td><td class="num">168.92</td><td class="num up">+4.23%</td><td class="ctr"><span class="pill p1">P1</span></td><td class="num">7.5</td><td class="num">2.0×</td><td><span class="mono faint">TG</span></td><td class="mono faint">3h</td></tr>
+<tr><td><div class="sy">BTC</div><div class="sn">Bitcoin</div></td><td><span class="pill cx">CX</span></td><td class="num">68,421</td><td class="num up">+2.14%</td><td class="ctr"><span class="pill p1">P1</span></td><td class="num">7.0</td><td class="num">1.8×</td><td><span class="mono faint">TG · EM</span></td><td class="mono faint">4h</td></tr>
+<tr><td><div class="sy">META</div><div class="sn">Meta Platforms</div></td><td><span class="pill eq">EQ</span></td><td class="num">582.14</td><td class="num up">+2.31%</td><td class="ctr"><span class="pill p2">P2</span></td><td class="num">7.0</td><td class="num">2.0×</td><td><span class="mono faint">EM</span></td><td class="mono faint">6h</td></tr>
+<tr><td><div class="sy">AAPL</div><div class="sn">Apple Inc</div></td><td><span class="pill eq">EQ</span></td><td class="num">218.40</td><td class="num dn">−1.12%</td><td class="ctr"><span class="pill p2">P2</span></td><td class="num">7.5</td><td class="num">2.0×</td><td><span class="mono faint">EM</span></td><td class="mono faint">9h</td></tr>
+<tr><td><div class="sy">AVAX</div><div class="sn">Avalanche</div></td><td><span class="pill cx">CX</span></td><td class="num">38.21</td><td class="num up">+3.42%</td><td class="ctr"><span class="pill p2">P2</span></td><td class="num">7.0</td><td class="num">2.5×</td><td><span class="mono faint">EM</span></td><td class="mono faint">1d</td></tr>
+<tr><td><div class="sy">GOOGL</div><div class="sn">Alphabet</div></td><td><span class="pill eq">EQ</span></td><td class="num">184.22</td><td class="num up">+0.84%</td><td class="ctr"><span class="pill p2">P2</span></td><td class="num">7.5</td><td class="num">2.0×</td><td><span class="mono faint">EM</span></td><td class="mono faint">3d</td></tr>
+<tr><td><div class="sy">LINK</div><div class="sn">Chainlink</div></td><td><span class="pill cx">CX</span></td><td class="num">16.84</td><td class="num dn">−2.18%</td><td class="ctr"><span class="pill mute"><span class="en">muted</span><span class="zh">靜音</span></span></td><td class="num faint">7.0</td><td class="num faint">2.0×</td><td><span class="faint mono">—</span></td><td class="mono faint"><span class="en">never</span><span class="zh">從未</span></td></tr>
+<tr><td><div class="sy">MSFT</div><div class="sn">Microsoft</div></td><td><span class="pill eq">EQ</span></td><td class="num">418.65</td><td class="num up">+0.42%</td><td class="ctr"><span class="faint">—</span></td><td class="num">7.5</td><td class="num">2.0×</td><td><span class="mono faint">TG</span></td><td class="mono faint">5d</td></tr>
+</tbody></table></section>
+<aside class="wl-detail"><div class="hd"><h3>NVDA</h3><span class="pill eq">EQUITY</span></div><div class="sub">NVIDIA Corporation · NASDAQ</div><div class="pxbig"><span class="p">142.18</span><span class="c up">+5.42%</span><span class="v">vol 3.4×</span></div>
+<div class="fld"><div class="lbl"><span><span class="en">Groups</span><span class="zh">所屬分組</span></span><a href="#">+ <span class="en">Add</span><span class="zh">加入</span></a></div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pill eq" style="font-size:11px;padding:3px 8px"><span class="en">Tech mega caps</span><span class="zh">科技大型股</span></span><span class="pill eq" style="font-size:11px;padding:3px 8px"><span class="en">AI · Semis</span><span class="zh">AI · 半導體</span></span></div></div>
+<div class="fld"><div class="lbl"><span><span class="en">Alert thresholds</span><span class="zh">告警閾值</span></span><a href="#"><span class="en">Reset defaults</span><span class="zh">重設預設</span></a></div><div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span><span class="en">P1 score</span><span class="zh">P1 分數</span></span></div><div class="slider-row"><div class="slider"><div class="fill" style="width:75%"></div><div class="knob" style="left:75%"></div></div><div class="n">7.5</div></div><div class="hint"><span class="en">Only fire P1 push when composite score ≥ this.</span><span class="zh">合流分數需 ≥ 此值才推播 P1。</span></div></div><div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)"><span><span class="en">Volume multiplier</span><span class="zh">量比門檻</span></span></div><div class="slider-row"><div class="slider"><div class="fill" style="width:40%"></div><div class="knob" style="left:40%"></div></div><div class="n">2.0×</div></div><div class="hint"><span class="en">vs 20-day moving average volume.</span><span class="zh">相對 20 日均量。</span></div></div></div>
+<div class="fld"><div class="lbl"><span><span class="en">Enabled signals</span><span class="zh">啟用訊號</span></span></div><div class="checks"><div class="chk on"><span class="box"></span><span class="en">Volume</span><span class="zh">爆量</span></div><div class="chk on"><span class="box"></span><span class="en">Breakout</span><span class="zh">突破</span></div><div class="chk on"><span class="box"></span><span class="en">Inst. flow</span><span class="zh">法人</span></div><div class="chk on"><span class="box"></span><span class="en">Options</span><span class="zh">選擇權</span></div><div class="chk on"><span class="box"></span><span class="en">Candle</span><span class="zh">K 棒</span></div><div class="chk on"><span class="box"></span><span class="en">News</span><span class="zh">新聞</span></div><div class="chk dis"><span class="box"></span><span class="en">On-chain</span><span class="zh">鏈上</span></div><div class="chk dis"><span class="box"></span><span class="en">Funding</span><span class="zh">資金費率</span></div></div></div>
+<div class="fld"><div class="lbl"><span><span class="en">Notification channels</span><span class="zh">推播管道</span></span></div><div class="chan-list"><div class="chan-item on"><span class="n">Telegram</span><span class="s">● @sentinel_bot</span></div><div class="chan-item on"><span class="n">Email</span><span class="s">● jerry@example.com</span></div><div class="chan-item"><span class="n">LINE Notify</span><span class="s faint" style="font-style:italic"><span class="en">not connected</span><span class="zh">未連結</span></span></div></div></div>
+<div style="display:flex;gap:6px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><button class="btn p" style="flex:1"><span class="en">Save changes</span><span class="zh">儲存變更</span></button><button class="btn" style="color:var(--down);border-color:var(--border)">✕</button></div>
+</aside></div>
+</div>
+
+<!-- ============ DETAIL ============ -->
+<div class="view" data-view="detail">
+<div class="pageHeader"><div class="pageTitle"><h1>NVDA · <span class="en">Story</span><span class="zh">深度</span></h1><div class="sub"><span class="en">Anatomy of a P1 signal — every rule, every trigger</span><span class="zh">解構一個 P1 訊號 — 每一條規則、每一次觸發</span></div></div><div class="r"><button class="btn g">← <span class="en">Back to signals</span><span class="zh">回訊號列表</span></button><button class="btn"><span class="en">🔔 Alerts</span><span class="zh">🔔 告警</span></button><button class="btn p"><span class="en">↗ Broker</span><span class="zh">↗ 券商</span></button></div></div>
+<div class="det-hero"><div class="l"><span class="badge">P1 · Score 9.2 · NASDAQ</span><h1><span class="s">NVDA</span> NVIDIA</h1><div class="sub">NVIDIA Corporation · $3.47T market cap · Semiconductors</div></div><div class="r"><div class="px">$142.18</div><div class="chg up">+7.32 · +5.42%</div><div class="btns"><button class="btn">★ <span class="en">Watch</span><span class="zh">追蹤</span></button><button class="btn"><span class="en">Compare</span><span class="zh">對比</span></button></div></div></div>
+<div class="det-tabs"><div class="det-tab active"><span class="en">Overview</span><span class="zh">總覽</span></div><div class="det-tab"><span class="en">Signal breakdown</span><span class="zh">訊號拆解</span></div><div class="det-tab"><span class="en">News timeline</span><span class="zh">新聞時間軸</span></div><div class="det-tab"><span class="en">Fundamentals</span><span class="zh">基本面</span></div><div class="det-tab"><span class="en">Backtest</span><span class="zh">回測</span></div></div>
+<div class="det-body"><section>
+<div class="verdict det-verdict"><div class="l"><span class="en">Sentinel's read</span><span class="zh">Sentinel 觀點</span></div><p><span class="en">Four rules fired within 90 minutes on <em>consistent direction</em>: volume, breakout, institutional flow, positive news. That confluence historically resolves in the direction of the move <em>68%</em> of the time within 3 sessions. Consider sizing into any pullback to $138.</span><span class="zh">90 分鐘內四條規則同向觸發：量能、突破、法人動向、利多新聞。歷史數據顯示，此種合流 <em>68%</em> 機率於三個交易日內延續走勢。可考慮在 138 美元前壓回落再進場。</span></p></div>
+<div class="det-chart-hd"><div class="ttl"><span class="en">Price × signal overlay · 3M</span><span class="zh">價格 × 訊號疊圖 · 3M</span></div><div class="det-tf"><span class="tf">1D</span><span class="tf">5D</span><span class="tf active">3M</span><span class="tf">1Y</span><span class="tf">5Y</span></div></div>
+<svg class="det-chart" viewBox="0 0 800 340" preserveAspectRatio="none"><defs><linearGradient id="cg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#4ade80" stop-opacity=".2"/><stop offset="1" stop-color="#4ade80" stop-opacity="0"/></linearGradient></defs><g stroke="#22272e" stroke-width="1" opacity=".6"><line x1="0" x2="800" y1="60" y2="60"/><line x1="0" x2="800" y1="130" y2="130"/><line x1="0" x2="800" y1="200" y2="200"/><line x1="0" x2="800" y1="270" y2="270"/></g><polyline points="0,240 40,235 80,242 120,220 160,225 200,210 240,215 280,195 320,200 360,180 400,165 440,170 480,150 520,155 560,135 600,140 640,120 680,110 720,90 760,60 800,40" fill="none" stroke="#4ade80" stroke-width="2"/><polyline points="0,240 40,235 80,242 120,220 160,225 200,210 240,215 280,195 320,200 360,180 400,165 440,170 480,150 520,155 560,135 600,140 640,120 680,110 720,90 760,60 800,40 800,340 0,340" fill="url(#cg)"/><g><circle cx="200" cy="210" r="6" fill="#0a0c10" stroke="#fbbf24" stroke-width="2"/><text x="200" y="200" font-size="10" font-family="JetBrains Mono" fill="#fbbf24" text-anchor="middle">P2</text></g><g><circle cx="400" cy="165" r="6" fill="#0a0c10" stroke="#fbbf24" stroke-width="2"/><text x="400" y="155" font-size="10" font-family="JetBrains Mono" fill="#fbbf24" text-anchor="middle">P2</text></g><g><circle cx="560" cy="135" r="7" fill="#0a0c10" stroke="#f87171" stroke-width="2.5"/><text x="560" y="122" font-size="10" font-family="JetBrains Mono" fill="#f87171" text-anchor="middle" font-weight="700">P1</text></g><g><circle cx="760" cy="60" r="8" fill="#f87171"/><text x="760" y="42" font-size="11" font-family="JetBrains Mono" fill="#f87171" text-anchor="middle" font-weight="700">P1 · NOW</text></g><line x1="0" x2="800" y1="45" y2="45" stroke="#f87171" stroke-width="1" stroke-dasharray="4 4" opacity=".6"/><text x="8" y="42" font-size="10" font-family="JetBrains Mono" fill="#f87171" opacity=".8">52W high · $141.63</text></svg>
+<div class="trig"><h4><span class="en">Why this fired · rule contribution</span><span class="zh">為何觸發 · 各規則貢獻</span></h4>
+<div class="trig-r"><span class="sw" style="background:#0ea5e9"></span><div class="d"><span class="en">Volume ran <em>3.4× the 20-day average</em> — highest print since May.</span><span class="zh">成交量達 <em>20 日均量 3.4 倍</em> — 5 月來最高。</span></div><div class="c"><span class="n">+2.4</span> · Volume</div></div>
+<div class="trig-r"><span class="sw" style="background:#f59e0b"></span><div class="d"><span class="en">Closed above <em>52-week high of $141.63</em>.</span><span class="zh">收盤突破 <em>52 週高 $141.63</em>。</span></div><div class="c"><span class="n">+2.1</span> · Breakout</div></div>
+<div class="trig-r"><span class="sw" style="background:#a78bfa"></span><div class="d"><span class="en"><em>Dark-pool prints</em> account for 41% of volume — institutional accumulation.</span><span class="zh"><em>暗池成交</em>占日量 41% — 法人吃貨型態。</span></div><div class="c"><span class="n">+2.3</span> · Flow</div></div>
+<div class="trig-r"><span class="sw" style="background:#6ea8fe"></span><div class="d"><span class="en">Hyperscaler partnership headline — <em>sentiment +0.82</em>.</span><span class="zh">與大型雲端業者合作利多 — <em>情緒分數 +0.82</em>。</span></div><div class="c"><span class="n">+2.4</span> · News</div></div>
+<div class="trig-r"><span class="sw" style="background:#f87171"></span><div class="d"><span class="en"><em>Confluence bonus</em> · 4 rules within 30-minute window.</span><span class="zh"><em>合流加成</em> · 30 分鐘窗口內 4 條規則同時觸發。</span></div><div class="c"><span class="n" style="color:var(--acc)">×1.15</span> · Bonus</div></div>
+<div class="trig-total"><span class="dim"><span class="en">Composite score</span><span class="zh">合流分數</span></span><span class="v">9.2 <span style="font-size:12px;color:var(--dim)">/ 10</span></span></div></div>
+</section>
+<aside class="det-side"><div class="side-blk"><h4><span class="en">Key stats</span><span class="zh">關鍵數據</span></h4><div class="kv"><span class="k"><span class="en">Market cap</span><span class="zh">市值</span></span><span class="v">$3.47T</span></div><div class="kv"><span class="k">P/E · fwd</span><span class="v">42.8</span></div><div class="kv"><span class="k"><span class="en">Avg vol 20d</span><span class="zh">20 日均量</span></span><span class="v">248M</span></div><div class="kv"><span class="k"><span class="en">Vol today</span><span class="zh">今日量</span></span><span class="v up">843M</span></div><div class="kv"><span class="k">RSI · 14</span><span class="v">72</span></div><div class="kv"><span class="k">52W range</span><span class="v" style="font-size:11px">82.10 – 142.18</span></div><div class="kv"><span class="k"><span class="en">Short interest</span><span class="zh">融券</span></span><span class="v">1.2%</span></div></div>
+<div class="side-blk"><h4><span class="en">Related news</span><span class="zh">相關新聞</span></h4><div class="mn pos"><div class="tm">22:08 · Reuters · +0.82</div><div class="hd"><span class="en">Nvidia announces partnership with hyperscaler for Blackwell deployment</span><span class="zh">輝達宣布與雲端業者合作 Blackwell 部署</span></div></div><div class="mn pos"><div class="tm">18:12 · SemiAnalysis · +0.62</div><div class="hd"><span class="en">AMD MI400 benchmarks leaked — competitive positioning for GPU race</span><span class="zh">AMD MI400 效能跑分外流 — GPU 競爭態勢</span></div></div><div class="mn neu"><div class="tm">11:02 · Bloomberg · +0.14</div><div class="hd"><span class="en">TSMC ships new N2 wafers to Nvidia ahead of schedule</span><span class="zh">台積電提前出貨 N2 晶圓給輝達</span></div></div></div>
+<div class="side-blk"><h4><span class="en">Signal history · 30d</span><span class="zh">近 30 日訊號</span></h4><div style="display:flex;flex-direction:column;gap:6px;font-family:'JetBrains Mono',monospace;font-size:12px"><div style="display:flex;justify-content:space-between"><span class="dim">Jun 21</span><span style="color:var(--p1);font-weight:600">P1 · 9.2</span></div><div style="display:flex;justify-content:space-between"><span class="dim">Jun 14</span><span style="color:var(--p2);font-weight:600">P2 · 6.8</span></div><div style="display:flex;justify-content:space-between"><span class="dim">Jun 08</span><span style="color:var(--p2);font-weight:600">P2 · 5.9</span></div><div style="display:flex;justify-content:space-between"><span class="dim">May 28</span><span style="color:var(--p2);font-weight:600">P2 · 6.2</span></div><div style="display:flex;justify-content:space-between"><span class="dim">May 20</span><span style="color:var(--p1);font-weight:600">P1 · 8.1</span></div></div><a href="#" style="font-size:11px;display:inline-block;margin-top:10px"><span class="en">View all 12 →</span><span class="zh">查看全部 12 →</span></a></div></aside></div>
+</div>
+
+<!-- ============ RULES ============ -->
+<div class="view" data-view="rules">
+<div class="pageHeader"><div class="pageTitle"><h1><span class="en">Rules</span><span class="zh">規則</span></h1><div class="sub"><span class="en">Every rule, parameters and historical performance</span><span class="zh">每條規則的參數與歷史勝率</span></div></div><div class="r"><button class="btn"><span class="en">Import preset</span><span class="zh">匯入預設</span></button><button class="btn p"><span class="en">＋ Custom rule</span><span class="zh">＋ 新增規則</span></button></div></div>
+<div class="rules-intro"><div><h2><span class="en">Rules that shape your feed</span><span class="zh">形塑訊號流的規則</span></h2><p><span class="en">Toggle rules on or off, tune parameters, and see the win rate Sentinel measured over 2 years. A rule with high false-positive rate should be tightened or muted.</span><span class="zh">開關規則、調整參數、查看 Sentinel 於過去兩年的勝率統計。假訊號率偏高的規則建議收緊或關閉。</span></p></div><div class="rs-sum"><div class="rs"><div class="n up">67<span style="font-size:14px;color:var(--dim)">%</span></div><div class="l"><span class="en">Avg win rate</span><span class="zh">平均勝率</span></div></div><div class="rs"><div class="n">4.2<span style="font-size:14px;color:var(--dim)">/d</span></div><div class="l"><span class="en">Avg triggers</span><span class="zh">平均觸發</span></div></div><div class="rs"><div class="n dn">18<span style="font-size:14px;color:var(--dim)">%</span></div><div class="l"><span class="en">False positive</span><span class="zh">假訊號率</span></div></div></div></div>
+
+<div class="rc-hd"><h3><span class="en">Volume</span><span class="zh">量能</span></h3><div class="d"><span class="en">Anomalous trading activity relative to recent baselines.</span><span class="zh">相對近期基準的異常成交活動。</span></div></div>
+<div class="rc-list">
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Volume Spike</span><span class="zh">爆量</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Fires when volume exceeds N× the trailing 20-day average.</span><span class="zh">當盤中成交量超過近 20 日均量 N 倍時觸發。</span></p><div class="rc-stats"><div class="kv"><span class="k"><span class="en">Win rate</span><span class="zh">勝率</span></span><span class="v good">72%</span></div><div class="kv"><span class="k"><span class="en">Avg return</span><span class="zh">報酬</span></span><span class="v good">+3.4%</span></div><div class="kv"><span class="k"><span class="en">False +</span><span class="zh">假訊號</span></span><span class="v">14%</span></div><div class="kv"><span class="k"><span class="en">Fires/d</span><span class="zh">日均</span></span><span class="v">8.2</span></div></div><div class="rc-params"><div class="p"><span class="l">Mult</span><span class="v">2.0×</span></div><div class="p"><span class="l">Lookback</span><span class="v">20d</span></div><div class="p"><span class="l">Weight</span><span class="v">2.4</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Relative Volume Ratio</span><span class="zh">相對量比</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Volume vs same-time-of-day average — intraday urgency.</span><span class="zh">相對同時段均量的比率 — 盤中急買急賣。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">65%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+2.1%</span></div><div class="kv"><span class="k">False +</span><span class="v">22%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">12.4</span></div></div><div class="rc-params"><div class="p"><span class="l">Threshold</span><span class="v">1.8×</span></div><div class="p"><span class="l">Weight</span><span class="v">1.8</span></div></div></div>
+</div>
+
+<div class="rc-hd"><h3><span class="en">Technical</span><span class="zh">技術面</span></h3><div class="d"><span class="en">Price-action patterns and indicator crossovers.</span><span class="zh">價格型態與指標交叉。</span></div></div>
+<div class="rc-list">
+<div class="rcd"><div class="top"><div class="nm"><span class="en">52-Week High Breakout</span><span class="zh">突破 52 週高</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Closes above trailing 52-week high with volume confirmation.</span><span class="zh">收盤突破 52 週高並有量能確認。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">78%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+5.8%</span></div><div class="kv"><span class="k">False +</span><span class="v good">8%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">1.4</span></div></div><div class="rc-params"><div class="p"><span class="l">Min break</span><span class="v">0.3%</span></div><div class="p"><span class="l">Vol confirm</span><span class="v">1.5×</span></div><div class="p"><span class="l">Weight</span><span class="v">2.1</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">200-Day MA Cross</span><span class="zh">200 日線交叉</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Price crosses above/below 200-day moving average with confirmation.</span><span class="zh">價格突破或跌破 200 日均線，含確認 K 棒。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">62%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+4.2%</span></div><div class="kv"><span class="k">False +</span><span class="v">18%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">2.8</span></div></div><div class="rc-params"><div class="p"><span class="l">Direction</span><span class="v">Both</span></div><div class="p"><span class="l">Confirm</span><span class="v">2 bars</span></div><div class="p"><span class="l">Weight</span><span class="v">1.9</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Long Green / Red Candle</span><span class="zh">長紅 / 長黑 K</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Candle body exceeds N% of recent average range.</span><span class="zh">K 棒實體超過近期平均振幅 N%。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v">58%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+2.4%</span></div><div class="kv"><span class="k">False +</span><span class="v bad">28%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">6.8</span></div></div><div class="rc-params"><div class="p"><span class="l">Body ratio</span><span class="v">1.8×</span></div><div class="p"><span class="l">Weight</span><span class="v">1.6</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Bollinger Band Break</span><span class="zh">布林軌道突破</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Close exceeds upper or lower Bollinger band with volume support.</span><span class="zh">收盤突破布林上下軌並有量能支撐。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">64%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+3.1%</span></div><div class="kv"><span class="k">False +</span><span class="v">19%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">3.4</span></div></div><div class="rc-params"><div class="p"><span class="l">Period</span><span class="v">20</span></div><div class="p"><span class="l">Std dev</span><span class="v">2.0</span></div><div class="p"><span class="l">Weight</span><span class="v">1.7</span></div></div></div>
+</div>
+
+<div class="rc-hd"><h3><span class="en">Flow · institutional</span><span class="zh">籌碼 · 法人動向</span></h3><div class="d"><span class="en">Dark-pool prints, block trades, and options sweep detection.</span><span class="zh">暗池成交、大宗交易、選擇權異動偵測。</span></div></div>
+<div class="rc-list">
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Institutional Block Trade</span><span class="zh">法人大宗</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Single-print block exceeding a USD threshold.</span><span class="zh">單筆金額超過門檻的大宗成交。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">70%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+4.6%</span></div><div class="kv"><span class="k">False +</span><span class="v good">11%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">2.2</span></div></div><div class="rc-params"><div class="p"><span class="l">Min USD</span><span class="v">$5M</span></div><div class="p"><span class="l">Venue</span><span class="v">Both</span></div><div class="p"><span class="l">Weight</span><span class="v">2.3</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Options Sweep · Call/Put</span><span class="zh">選擇權異動</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Multi-exchange sweep with unusual premium — buyer aggression.</span><span class="zh">多交易所同步掃單、權利金異常 — 買方主動。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">68%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+5.1%</span></div><div class="kv"><span class="k">False +</span><span class="v">15%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">3.8</span></div></div><div class="rc-params"><div class="p"><span class="l">Min premium</span><span class="v">$1M</span></div><div class="p"><span class="l">Weight</span><span class="v">2.0</span></div></div></div>
+</div>
+
+<div class="rc-hd"><h3><span class="en">On-chain · crypto</span><span class="zh">鏈上 · 加密</span></h3><div class="d"><span class="en">Whale flows, exchange netflow, funding, and cycle indicators.</span><span class="zh">鯨魚流向、交易所淨流、資金費率與週期指標。</span></div></div>
+<div class="rc-list">
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Whale Inflow / Outflow</span><span class="zh">鯨魚流入 / 流出</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Large wallets moving ≥ threshold USD to/from exchanges.</span><span class="zh">大戶錢包對交易所的美元流量超過門檻。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">61%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+6.2%</span></div><div class="kv"><span class="k">False +</span><span class="v">21%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">4.6</span></div></div><div class="rc-params"><div class="p"><span class="l">Min inflow</span><span class="v">$10M</span></div><div class="p"><span class="l">Min wallet</span><span class="v">$100M</span></div><div class="p"><span class="l">Weight</span><span class="v">2.2</span></div></div></div>
+<div class="rcd off"><div class="top"><div class="nm"><span class="en">SOPR / MVRV Extreme</span><span class="zh">SOPR / MVRV 極值</span></div><div class="toggle"></div></div><p class="dsc"><span class="en">On-chain profit-taking indicators crossing extreme thresholds.</span><span class="zh">鏈上獲利指標突破極值。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v">55%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+3.8%</span></div><div class="kv"><span class="k">False +</span><span class="v bad">32%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">0.8</span></div></div><div class="rc-params"><div class="p"><span class="l">SOPR &gt;</span><span class="v">1.05</span></div><div class="p"><span class="l">Weight</span><span class="v">1.4</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Funding Rate Spike</span><span class="zh">資金費率飆升</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Perpetual futures funding exceeds threshold — overheating.</span><span class="zh">永續合約資金費率超過門檻 — 過熱訊號。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">67%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+4.4%</span></div><div class="kv"><span class="k">False +</span><span class="v">17%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">2.1</span></div></div><div class="rc-params"><div class="p"><span class="l">Threshold</span><span class="v">0.08%</span></div><div class="p"><span class="l">Weight</span><span class="v">1.8</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Exchange Net Flow</span><span class="zh">交易所淨流量</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Net USD flow to or from major exchanges over rolling window.</span><span class="zh">主要交易所滾動窗口內的淨美元流量。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">63%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+3.6%</span></div><div class="kv"><span class="k">False +</span><span class="v">19%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">3.2</span></div></div><div class="rc-params"><div class="p"><span class="l">Direction</span><span class="v">Both</span></div><div class="p"><span class="l">Weight</span><span class="v">1.9</span></div></div></div>
+</div>
+
+<div class="rc-hd"><h3><span class="en">News · sentiment</span><span class="zh">新聞 · 情緒</span></h3><div class="d"><span class="en">Headlines, analyst actions, and event-driven flows.</span><span class="zh">新聞頭條、分析師動作、事件驅動。</span></div></div>
+<div class="rc-list" style="margin-bottom:20px">
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Positive / Negative News</span><span class="zh">正負面新聞</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Sentiment-scored headlines exceeding threshold from tracked sources.</span><span class="zh">追蹤來源的情緒評分頭條超過門檻。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">69%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+3.8%</span></div><div class="kv"><span class="k">False +</span><span class="v">16%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">5.4</span></div></div><div class="rc-params"><div class="p"><span class="l">|Sent|</span><span class="v">0.5</span></div><div class="p"><span class="l">Weight</span><span class="v">2.4</span></div></div></div>
+<div class="rcd"><div class="top"><div class="nm"><span class="en">Analyst Rating Change</span><span class="zh">分析師評等異動</span></div><div class="toggle on"></div></div><p class="dsc"><span class="en">Upgrade / downgrade / price-target change from major sell-side.</span><span class="zh">主要券商調升、調降、目標價異動。</span></p><div class="rc-stats"><div class="kv"><span class="k">Win rate</span><span class="v good">64%</span></div><div class="kv"><span class="k">Return</span><span class="v good">+2.8%</span></div><div class="kv"><span class="k">False +</span><span class="v">20%</span></div><div class="kv"><span class="k">Fires/d</span><span class="v">1.8</span></div></div><div class="rc-params"><div class="p"><span class="l">Firms</span><span class="v">Top 20</span></div><div class="p"><span class="l">Weight</span><span class="v">1.5</span></div></div></div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<!-- ⌘K Command Palette -->
+<div class="cmdk-overlay" id="cmdk"><div class="cmdk"><div class="cmdk-in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--faint)"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input placeholder="Search symbols, rules, actions… (⌘K to close)"/><span class="kbd" style="color:var(--faint);font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 5px;background:var(--panel-2);border:1px solid var(--border);border-radius:3px">ESC</span></div><div class="cmdk-list"><div class="cmdk-grp">Navigate</div><div class="cmdk-i hi" onclick="showView('dashboard');closeCmdk()"><span class="ic">◈</span><span class="nm">Go to Dashboard</span><span class="sh">G D</span></div><div class="cmdk-i" onclick="showView('signals');closeCmdk()"><span class="ic">≋</span><span class="nm">Go to Signals</span><span class="sh">G S</span></div><div class="cmdk-i" onclick="showView('watchlist');closeCmdk()"><span class="ic">☆</span><span class="nm">Go to Watchlist</span><span class="sh">G W</span></div><div class="cmdk-i" onclick="showView('detail');closeCmdk()"><span class="ic">✦</span><span class="nm">Go to NVDA · Detail</span><span class="sh">G N</span></div><div class="cmdk-i" onclick="showView('rules');closeCmdk()"><span class="ic">⚙</span><span class="nm">Go to Rules</span><span class="sh">G R</span></div><div class="cmdk-grp">Symbols</div><div class="cmdk-i"><span class="ic">◉</span><span class="nm">NVDA · NVIDIA Corp</span><span class="sh">P1 · 9.2</span></div><div class="cmdk-i"><span class="ic">◉</span><span class="nm">SOL · Solana</span><span class="sh">P1 · 8.7</span></div><div class="cmdk-i"><span class="ic">◉</span><span class="nm">TSLA · Tesla</span><span class="sh">P1 · 8.4</span></div><div class="cmdk-grp">Actions</div><div class="cmdk-i"><span class="ic">↻</span><span class="nm">Rescan now</span><span class="sh">⌘R</span></div><div class="cmdk-i"><span class="ic">🔕</span><span class="nm">Mute all alerts for 1h</span></div><div class="cmdk-i"><span class="ic">📄</span><span class="nm">Export today's digest</span></div></div></div></div>
+
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    document.addEventListener('click', (e) => {
+      const nav = e.target.closest('.nav-item[data-view]');
+      if (nav) return this.showView(nav.dataset.view);
+      const grp = e.target.closest('.grp');
+      if (grp && !grp.classList.contains('active')) {
+        grp.parentElement.querySelectorAll('.grp').forEach(g=>g.classList.remove('active'));
+        grp.classList.add('active');
+      }
+      const chip = e.target.closest('.chip');
+      if (chip && !chip.classList.contains('active')) {
+        chip.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+        chip.classList.add('active');
+      }
+      const tab = e.target.closest('.det-tab, .tf');
+      if (tab && !tab.classList.contains('active')) {
+        tab.parentElement.querySelectorAll(tab.classList.contains('det-tab')?'.det-tab':'.tf').forEach(c=>c.classList.remove('active'));
+        tab.classList.add('active');
+      }
+      const tog = e.target.closest('.toggle');
+      if (tog) {
+        tog.classList.toggle('on');
+        const card = tog.closest('.rcd');
+        if (card) card.classList.toggle('off', !tog.classList.contains('on'));
+      }
+      const chk = e.target.closest('.chk:not(.dis)');
+      if (chk) chk.classList.toggle('on');
+      const chan = e.target.closest('.chan-item');
+      if (chan) chan.classList.toggle('on');
+      const row = e.target.closest('.tbl tbody tr');
+      if (row) {
+        row.parentElement.querySelectorAll('tr').forEach(r=>r.classList.remove('selected'));
+        row.classList.add('selected');
+      }
+      if (e.target.closest('.cmdk-overlay') && !e.target.closest('.cmdk')) this.closeCmdk();
+    });
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); this.toggleCmdk(); }
+      if (e.key==='Escape') this.closeCmdk();
+    });
+    window.showView = (v) => this.showView(v);
+    window.openCmdk = () => this.openCmdk();
+    window.closeCmdk = () => this.closeCmdk();
+    window.toggleCmdk = () => this.toggleCmdk();
+  }
+  showView(v) {
+    document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active', el.dataset.view===v));
+    document.querySelectorAll('.nav-item[data-view]').forEach(el=>el.classList.toggle('active', el.dataset.view===v));
+    window.scrollTo({top:0,behavior:'instant'});
+  }
+  openCmdk() { const o=document.getElementById('cmdk'); if(o){o.classList.add('open'); setTimeout(()=>{const i=o.querySelector('input');if(i)i.focus();},50);} }
+  closeCmdk() { const o=document.getElementById('cmdk'); if(o)o.classList.remove('open'); }
+  toggleCmdk() { const o=document.getElementById('cmdk'); if(o)o.classList.toggle('open'); }
+}
+</script>
+</body>
+</html>

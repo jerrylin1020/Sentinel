@@ -59,28 +59,28 @@ export function WatchlistManager({
   }
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={addSymbol} className="flex flex-wrap items-end gap-2 rounded border border-border bg-panel-2 p-3">
+    <div className="space-y-4 p-6">
+      <form onSubmit={addSymbol} className="flex flex-wrap items-end gap-3 border-b border-border pb-5">
         <Field label="Ticker">
           <input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="NVDA / BTCUSDT"
-            className="w-32 rounded border border-border-light bg-panel px-2 py-1" />
+          className="w-32 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
         </Field>
         <Field label="名稱">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="NVIDIA"
-            className="w-36 rounded border border-border-light bg-panel px-2 py-1" />
+          className="w-36 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
         </Field>
         <Field label="類型">
           <select value={assetType} onChange={(e) => setAssetType(e.target.value)}
-            className="rounded border border-border-light bg-panel px-2 py-1">
+            className="rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm">
             <option value="equity">equity</option>
             <option value="crypto">crypto</option>
           </select>
         </Field>
         <Field label="交易所">
           <input value={exchange} onChange={(e) => setExchange(e.target.value)} placeholder="NASDAQ / BINANCE"
-            className="w-32 rounded border border-border-light bg-panel px-2 py-1" />
+            className="w-32 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
         </Field>
-        <button disabled={busy} className="rounded border border-up/50 bg-up/10 px-3 py-1 text-up hover:bg-up/20 disabled:opacity-50">
+        <button disabled={busy} className="rounded-md border border-cyan bg-cyan px-3 py-1.5 text-sm font-semibold text-bg hover:bg-blue disabled:opacity-50">
           ＋ 新增標的
         </button>
       </form>
@@ -149,7 +149,7 @@ function Row({
   }
 
   return (
-    <div className="rounded border border-border bg-panel p-3">
+    <div className="rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center gap-3">
         <span className="mono text-lg font-semibold">{item.symbol.ticker}</span>
         <span className="text-sm text-text-dim">{item.symbol.name}</span>
@@ -157,7 +157,7 @@ function Row({
           {item.symbol.asset_type}
         </span>
         <button onClick={() => onRemove(item.watched.id, item.symbol.ticker)}
-          className="ml-auto rounded border border-down/40 px-2 py-1 text-xs text-down hover:bg-down/10">
+          className="ml-auto rounded-md border border-down/40 px-2 py-1 text-xs text-down hover:bg-down/10">
           刪除
         </button>
       </div>

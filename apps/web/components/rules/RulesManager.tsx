@@ -34,12 +34,12 @@ export function RulesManager({ initial }: { initial: ApiRule[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-5 flex flex-wrap gap-2 border-b border-border pb-4">
         {categories.map((c) => (
           <button
             key={c}
             onClick={() => setFilter(c)}
-            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+            className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
               filter === c
                 ? "border-cyan/50 bg-cyan/10 text-cyan"
                 : "border-border-light bg-panel-2 text-text-dim hover:text-text"
@@ -49,7 +49,7 @@ export function RulesManager({ initial }: { initial: ApiRule[] }) {
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {visible.map((r) => (
           <RuleCard key={r.id} rule={r} onSaved={() => router.refresh()} />
         ))}
