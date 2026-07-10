@@ -3,10 +3,14 @@
 // (e.g. during a Vercel build with no backend yet).
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const MUTATION_PROXY = "/api/backend";
 
 async function get<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
+    const tag = `sentinel:${path.split("?")[0]}`;
+    const res = await fetch(`${BASE}${path}`, {
+      next: { revalidate: 30, tags: [tag] },
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -15,24 +19,29 @@ async function get<T>(path: string): Promise<T | null> {
 }
 
 // --- Client-side mutations (called from "use client" components) ---
-export async function apiPost(path: string, body: unknown) {
-  return fetch(`${BASE}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+async function mutate(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {
+  const res = await fetch(`${MUTATION_PROXY}${path}`, {
+    method,
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `儲存失敗（${res.status}）`);
+  }
+  return res;
+}
+
+export async function apiPost(path: string, body: unknown) {
+  return mutate(path, "POST", body);
 }
 
 export async function apiPatch(path: string, body: unknown) {
-  return fetch(`${BASE}${path}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  return mutate(path, "PATCH", body);
 }
 
 export async function apiDelete(path: string) {
-  return fetch(`${BASE}${path}`, { method: "DELETE" });
+  return mutate(path, "DELETE");
 }
 
 export type Severity = "p1" | "p2" | "observe";
@@ -96,7 +105,8 @@ export interface ApiWatched {
   };
 }
 
-export const getSignals = () => get<ApiSignal[]>("/signals").then((d) => d ?? []);
+export const getSignals = (severity?: Severity) =>
+  get<ApiSignal[]>(`/signals${severity ? `?severity=${severity}` : ""}`).then((d) => d ?? []);
 export const getRules = () => get<ApiRule[]>("/rules").then((d) => d ?? []);
 export const getWatchlist = () => get<ApiWatched[]>("/watchlist").then((d) => d ?? []);
 

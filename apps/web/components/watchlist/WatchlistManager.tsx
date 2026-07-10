@@ -33,6 +33,7 @@ export function WatchlistManager({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Add-symbol form state
   const [ticker, setTicker] = useState("");
@@ -44,46 +45,59 @@ export function WatchlistManager({
     e.preventDefault();
     if (!ticker.trim()) return;
     setBusy(true);
-    await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
-    setTicker(""); setName(""); setExchange("");
-    setBusy(false);
-    router.refresh();
+    setError(null);
+    try {
+      await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
+      setTicker(""); setName(""); setExchange("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "新增標的失敗，請稍後再試。");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove(id: number, t: string) {
     if (!confirm(`確定要刪除 ${t}?`)) return;
     setBusy(true);
-    await apiDelete(`/watchlist/${id}`);
-    setBusy(false);
-    router.refresh();
+    setError(null);
+    try {
+      await apiDelete(`/watchlist/${id}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "刪除標的失敗，請稍後再試。");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={addSymbol} className="flex flex-wrap items-end gap-2 rounded border border-border bg-panel-2 p-3">
+    <div className="space-y-4 p-6">
+      <form onSubmit={addSymbol} className="flex flex-wrap items-end gap-3 border-b border-border pb-5">
         <Field label="Ticker">
           <input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="NVDA / BTCUSDT"
-            className="w-32 rounded border border-border-light bg-panel px-2 py-1" />
+          className="w-32 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
         </Field>
         <Field label="名稱">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="NVIDIA"
-            className="w-36 rounded border border-border-light bg-panel px-2 py-1" />
+          className="w-36 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
         </Field>
         <Field label="類型">
           <select value={assetType} onChange={(e) => setAssetType(e.target.value)}
-            className="rounded border border-border-light bg-panel px-2 py-1">
+            className="rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm">
             <option value="equity">equity</option>
             <option value="crypto">crypto</option>
           </select>
         </Field>
         <Field label="交易所">
           <input value={exchange} onChange={(e) => setExchange(e.target.value)} placeholder="NASDAQ / BINANCE"
-            className="w-32 rounded border border-border-light bg-panel px-2 py-1" />
+            className="w-32 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
         </Field>
-        <button disabled={busy} className="rounded border border-up/50 bg-up/10 px-3 py-1 text-up hover:bg-up/20 disabled:opacity-50">
+        <button disabled={busy} className="rounded-md border border-cyan bg-cyan px-3 py-1.5 text-sm font-semibold text-bg hover:bg-blue disabled:opacity-50">
           ＋ 新增標的
         </button>
       </form>
+      {error && <p role="alert" className="rounded-md border border-down/40 bg-down/10 px-3 py-2 text-xs text-down">{error}</p>}
 
       <div className="space-y-2">
         {initial.map((it) => (
@@ -112,6 +126,7 @@ function Row({
   const [rules, setRules] = useState<string[]>(item.watched.enabled_rules);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function toggle(list: string[], setList: (v: string[]) => void, v: string) {
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -137,19 +152,25 @@ function Row({
 
   async function save() {
     setSaving(true);
-    await apiPatch(`/watchlist/${item.watched.id}`, {
-      p1_score_threshold: threshold,
-      volume_multiplier: mult,
-      channels,
-      enabled_rules: rules,
-    });
-    setSaving(false);
-    setSaved(true);
-    onSaved();
+    setError(null);
+    try {
+      await apiPatch(`/watchlist/${item.watched.id}`, {
+        p1_score_threshold: threshold,
+        volume_multiplier: mult,
+        channels,
+        enabled_rules: rules,
+      });
+      setSaved(true);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "儲存失敗，請稍後再試。");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <div className="rounded border border-border bg-panel p-3">
+    <div className="rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center gap-3">
         <span className="mono text-lg font-semibold">{item.symbol.ticker}</span>
         <span className="text-sm text-text-dim">{item.symbol.name}</span>
@@ -157,7 +178,7 @@ function Row({
           {item.symbol.asset_type}
         </span>
         <button onClick={() => onRemove(item.watched.id, item.symbol.ticker)}
-          className="ml-auto rounded border border-down/40 px-2 py-1 text-xs text-down hover:bg-down/10">
+          className="ml-auto rounded-md border border-down/40 px-2 py-1 text-xs text-down hover:bg-down/10">
           刪除
         </button>
       </div>
@@ -253,6 +274,7 @@ function Row({
           {saving ? "儲存中…" : "儲存"}
         </button>
         {saved && <span className="text-xs text-up">已儲存 ✓</span>}
+        {error && <span role="alert" className="text-xs text-down">{error}</span>}
       </div>
     </div>
   );
