@@ -16,6 +16,7 @@ def _sma(candles: list[Candle], period: int) -> float:
     id="golden_cross",
     name="Golden Cross",
     category="technical",
+    trigger_severity="p2",
     description="Fast (50-bar) moving average crosses above the slow (200-bar) moving average.",
     applies_to=["equity", "crypto"],
     weight=2.0,

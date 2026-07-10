@@ -36,6 +36,7 @@ class RuleSpec:
     id: str
     name: str
     category: str
+    trigger_severity: str
     description: str
     applies_to: list[str]
     weight: float
@@ -58,6 +59,7 @@ def rule(
     id: str,
     name: str,
     category: str,
+    trigger_severity: str,
     description: str,
     applies_to: list[str],
     weight: float,
@@ -70,6 +72,7 @@ def rule(
             id=id,
             name=name,
             category=category,
+            trigger_severity=trigger_severity,
             description=description,
             applies_to=applies_to,
             weight=weight,

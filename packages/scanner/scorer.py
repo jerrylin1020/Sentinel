@@ -24,7 +24,11 @@ class ScoreResult:
     components: dict
 
 
-def score_hits(hits: list[RuleHit], p1_min_score: float = P1_MIN_SCORE) -> ScoreResult:
+def score_hits(
+    hits: list[RuleHit],
+    p1_min_score: float = P1_MIN_SCORE,
+    rule_weights: dict[str, float] | None = None,
+) -> ScoreResult:
     if not hits:
         return ScoreResult(0.0, "observe", {})
 
@@ -32,7 +36,7 @@ def score_hits(hits: list[RuleHit], p1_min_score: float = P1_MIN_SCORE) -> Score
     base = 0.0
     for hit in hits:
         spec = registry.get(hit.rule_id)
-        weight = spec.weight if spec else 1.0
+        weight = (rule_weights or {}).get(hit.rule_id, spec.weight if spec else 1.0)
         contribution = weight * SEVERITY_WEIGHT.get(hit.severity, 1.0)
         components[hit.rule_id] = round(contribution, 3)
         base += contribution

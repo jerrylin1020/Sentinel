@@ -34,7 +34,9 @@ def run_scan() -> list[dict]:
 
         # Globally disabled rules (e.g. pruned by backtest) are excluded from
         # every scan, regardless of a symbol's enabled_rules list.
-        disabled = {r.id for r in session.exec(select(Rule)).all() if not r.enabled}
+        configured_rules = session.exec(select(Rule)).all()
+        disabled = {r.id for r in configured_rules if not r.enabled}
+        rule_weights = {r.id: r.weight for r in configured_rules}
 
         watched = session.exec(select(WatchedSymbol)).all()
         for w in watched:
@@ -71,6 +73,7 @@ def run_scan() -> list[dict]:
                 params_overrides={"volume_spike_2x": {"multiplier": w.volume_multiplier}},
                 p1_min_score=w.p1_score_threshold,
                 funding_rates=funding_rates,
+                rule_weights=rule_weights,
             )
 
             if not result.hits:
@@ -97,7 +100,15 @@ def run_scan() -> list[dict]:
                 # Keep the human-readable "why" (e.g. "Closed above upper Bollinger
                 # band (312.08)") alongside raw metrics so the UI can show exactly
                 # which rule fired and why, not just its category.
-                extra={h.rule_id: {"detail": h.detail, "metrics": h.metrics} for h in result.hits},
+                extra={
+                    h.rule_id: {
+                        "detail": h.detail,
+                        "metrics": h.metrics,
+                        "trigger_severity": h.severity,
+                        "weight": rule_weights.get(h.rule_id, 1.0),
+                    }
+                    for h in result.hits
+                },
                 dedup_key=key,
             )
             session.add(signal)

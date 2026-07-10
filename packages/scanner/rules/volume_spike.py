@@ -11,6 +11,7 @@ from packages.shared.types import Candle, RuleHit
     id="volume_spike_2x",
     name="Volume Spike",
     category="volume",
+    trigger_severity="p2",
     description="Latest volume exceeds N x the trailing average volume.",
     applies_to=["equity", "crypto"],
     weight=2.4,

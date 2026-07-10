@@ -136,6 +136,7 @@ function Row({
   // Only show rules that actually apply to this symbol's asset type (e.g. hide crypto-only
   // rules like Funding Rate Spike for equity symbols) instead of listing all 14 unconditionally.
   const applicable = allRules.filter((r) => r.applies_to.includes(item.symbol.asset_type));
+  const enabledApplicableCount = applicable.filter((r) => rules.includes(r.id)).length;
   const excludedCount = allRules.length - applicable.length;
   const groupedRules = CATEGORY_ORDER.map((cat) => [cat, applicable.filter((r) => r.category === cat)] as const)
     .filter(([, list]) => list.length > 0)
@@ -184,15 +185,17 @@ function Row({
       </div>
 
       <div className="mt-3 flex flex-wrap items-start gap-4">
-        <Field label="P1 門檻">
+        <div className="flex max-w-52 flex-col gap-1">
+          <span className="text-xs uppercase tracking-wider text-text-dim">P1 門檻</span>
           <input type="number" step="0.5" value={threshold} onChange={(e) => { setThreshold(+e.target.value); setSaved(false); }}
             className="w-20 rounded border border-border-light bg-panel-2 px-2 py-1" />
-        </Field>
-        <div className="flex flex-col gap-1">
+          <span className="text-[11px] leading-4 text-text-faint">加權分數達 {threshold}，且至少 3 條規則同時觸發，才判定為 P1</span>
+        </div>
+        <div className="flex max-w-52 flex-col gap-1">
           <span className="text-xs uppercase tracking-wider text-text-dim">量倍數</span>
           <input type="number" step="0.1" value={mult} onChange={(e) => { setMult(+e.target.value); setSaved(false); }}
             className="w-20 rounded border border-border-light bg-panel-2 px-2 py-1" />
-          <span className="text-[11px] text-text-faint">只影響 Volume Spike 規則</span>
+          <span className="text-[11px] leading-4 text-text-faint">最新日 K 成交量達前 20 根日 K 平均量的 {mult} 倍，才觸發 Volume Spike</span>
         </div>
         <Field label="推播">
           <div className="flex gap-2">
@@ -210,7 +213,7 @@ function Row({
         <div className="mb-2 flex items-center gap-2">
           <span className="text-xs uppercase tracking-wider text-text-dim">啟用規則</span>
           <span className="mono text-xs text-up">
-            {rules.length} / {applicable.length} 適用
+            {enabledApplicableCount} / {applicable.length} 適用
           </span>
           {excludedCount > 0 && (
             <span className="text-[11px] text-text-faint">

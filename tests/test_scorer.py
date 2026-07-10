@@ -20,3 +20,10 @@ def test_lower_threshold_escalates_to_p1():
 def test_p1_needs_three_rules_even_with_low_threshold():
     res = score_hits(_hits(2), p1_min_score=0.0)
     assert res.severity == "p2"  # only 2 rules, P1 requires >= 3
+
+
+def test_configured_rule_weights_override_registry_defaults():
+    hits = [RuleHit(rule_id="volume_spike_2x", severity="p2", detail="")]
+    res = score_hits(hits, rule_weights={"volume_spike_2x": 4.2})
+    assert res.score == 4.2
+    assert res.components == {"volume_spike_2x": 4.2}

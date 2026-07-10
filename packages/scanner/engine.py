@@ -26,6 +26,7 @@ def scan_symbol(
     params_overrides: dict[str, dict] | None = None,
     p1_min_score: float | None = None,
     funding_rates: list[FundingRatePoint] | None = None,
+    rule_weights: dict[str, float] | None = None,
 ) -> ScanResult:
     """Run every applicable rule against the right data series.
 
@@ -56,4 +57,8 @@ def scan_symbol(
             hits.append(hit)
 
     score_kwargs = {} if p1_min_score is None else {"p1_min_score": p1_min_score}
-    return ScanResult(ticker=ticker, hits=hits, score=score_hits(hits, **score_kwargs))
+    return ScanResult(
+        ticker=ticker,
+        hits=hits,
+        score=score_hits(hits, rule_weights=rule_weights, **score_kwargs),
+    )

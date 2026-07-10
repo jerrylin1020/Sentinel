@@ -10,6 +10,6 @@ export default async function DetailPage({ params }: { params: { symbol: string 
 
   return <div>
     <header className="page-heading items-end"><div><p className="font-mono text-[11px] uppercase tracking-[0.1em] text-text-faint">{watched?.symbol.exchange || "Market detail"}</p><h1 className="mt-1 font-mono text-[28px]">{symbol}</h1><p>{head?.name || watched?.symbol.name || "市場標的"}</p></div><div className="text-right">{head && <><p className="font-mono text-[28px] font-semibold leading-none text-text">{head.price.toLocaleString()}</p><p className="mt-1 font-mono text-xs text-cyan">Score {head.score.toFixed(1)}</p></>}</div></header>
-    <div className="p-6"><SignalOverlay symbol={symbol} related={related} exchange={watched?.symbol.exchange} /></div>
+    <div className="p-6"><SignalOverlay symbol={symbol} related={related} exchange={watched?.symbol.exchange} p1Threshold={watched?.watched.p1_score_threshold ?? 7.5} /></div>
   </div>;
 }

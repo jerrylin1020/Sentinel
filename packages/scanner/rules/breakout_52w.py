@@ -11,6 +11,7 @@ from packages.shared.types import Candle, RuleHit
     id="breakout_52w",
     name="52-Week High Breakout",
     category="technical",
+    trigger_severity="p2",
     description="Latest close breaks above the trailing 52-week high (252 daily bars).",
     applies_to=["equity", "crypto"],
     weight=2.1,

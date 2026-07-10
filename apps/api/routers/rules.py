@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 
 from apps.api.db import get_session
 from apps.api.models import Rule, RuleBacktestStats
+from packages.scanner.rules import registry
 
 router = APIRouter(prefix="/rules", tags=["rules"])
 
@@ -24,6 +25,7 @@ def list_rules(session: Session = Depends(get_session)):
                 "id": r.id,
                 "name": r.name,
                 "category": r.category.value,
+                "trigger_severity": registry[r.id].trigger_severity if r.id in registry else "observe",
                 "description": r.description,
                 "applies_to": r.applies_to,
                 "weight": r.weight,

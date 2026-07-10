@@ -13,6 +13,7 @@ from packages.shared.types import Candle, RuleHit
     id="stochastic_reversal",
     name="Stochastic Oversold Reversal",
     category="technical",
+    trigger_severity="p2",
     description="Fast stochastic %K crosses back above the oversold threshold.",
     applies_to=["equity", "crypto"],
     weight=1.5,

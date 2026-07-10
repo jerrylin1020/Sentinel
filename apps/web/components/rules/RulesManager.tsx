@@ -20,6 +20,24 @@ const categoryLabel: Record<string, string> = {
   composite: "Composite",
 };
 
+const triggerSeverityLabel = {
+  p1: "強",
+  p2: "標準",
+  observe: "觀察",
+} as const;
+
+const triggerSeverityStyle = {
+  p1: "border-p1/40 bg-p1/10 text-p1",
+  p2: "border-p2/40 bg-p2/10 text-p2",
+  observe: "border-border-light bg-panel-2 text-text-dim",
+} as const;
+
+const observeRuleIds = new Set(["gap_up", "long_green_candle", "price_momentum"]);
+
+function getTriggerSeverity(rule: ApiRule) {
+  return rule.trigger_severity ?? (observeRuleIds.has(rule.id) ? "observe" : "p2");
+}
+
 export function RulesManager({ initial }: { initial: ApiRule[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<string>("all");
@@ -34,6 +52,10 @@ export function RulesManager({ initial }: { initial: ApiRule[] }) {
 
   return (
     <div>
+      <div className="mb-4 rounded-lg border border-cyan/25 bg-cyan/[0.06] px-4 py-3 text-xs leading-5 text-text-dim">
+        <strong className="text-text">這裡顯示的是單條規則的觸發強度與計分權重。</strong>
+        追蹤訊號的 P1／P2／Observe 等級，會在多條規則合流計分後才決定。
+      </div>
       <div className="mb-5 flex flex-wrap gap-2 border-b border-border pb-4">
         {categories.map((c) => (
           <button
@@ -59,6 +81,7 @@ export function RulesManager({ initial }: { initial: ApiRule[] }) {
 }
 
 function RuleCard({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
+  const triggerSeverity = getTriggerSeverity(rule);
   const [enabled, setEnabled] = useState(rule.enabled);
   const [weight, setWeight] = useState(rule.weight);
   const [params, setParams] = useState<Record<string, number>>(
@@ -114,6 +137,12 @@ function RuleCard({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
       </div>
 
       <div className="flex flex-wrap gap-1.5">
+        <span className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${triggerSeverityStyle[triggerSeverity]}`}>
+          觸發強度：{triggerSeverityLabel[triggerSeverity]}
+        </span>
+        <span className="mono rounded border border-cyan/35 bg-cyan/[0.07] px-1.5 py-0.5 text-[10px] text-cyan" title="這條規則對合流分數的基礎影響力">
+          權重 {weight.toFixed(1)}
+        </span>
         <span
           className={`mono rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
             categoryColor[rule.category] ?? "text-text-dim border-border-light"
@@ -135,6 +164,10 @@ function RuleCard({ rule, onSaved }: { rule: ApiRule; onSaved: () => void }) {
       </div>
 
       {rule.description && <p className="text-xs leading-relaxed text-text-dim">{rule.description}</p>}
+
+      <p className="text-[11px] leading-4 text-text-faint">
+        本規則觸發時，基礎貢獻為權重 {weight.toFixed(1)} × 強度係數 {triggerSeverity === "p1" ? "1.5" : triggerSeverity === "p2" ? "1.0" : "0.5"}。
+      </p>
 
       {b ? (
         <div className="flex flex-wrap gap-3 border-t border-dashed border-border pt-2 text-[11px] text-text-dim">

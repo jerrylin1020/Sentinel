@@ -13,6 +13,7 @@ from packages.shared.types import Candle, RuleHit
     id="bollinger_breakout",
     name="Bollinger Band Break",
     category="technical",
+    trigger_severity="p2",
     description="Latest close breaks above the upper Bollinger band.",
     applies_to=["equity", "crypto"],
     weight=1.7,

@@ -11,6 +11,7 @@ from packages.shared.types import Candle, RuleHit
     id="gap_up",
     name="Gap Up",
     category="technical",
+    trigger_severity="observe",
     description="Latest bar opens >= threshold above the previous close.",
     applies_to=["equity", "crypto"],
     weight=1.5,

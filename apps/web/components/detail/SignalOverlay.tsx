@@ -10,10 +10,22 @@ import { fmtDateTime } from "@/lib/format";
 const markerColor: Record<string, string> = { p1: "#ff3b58", p2: "#ffb627", observe: "#7a839a" };
 
 const SEVERITY_INFO: Record<string, string> = {
-  p1: "P1・高信心：多條規則同時觸發，或單一規則權重極高，值得優先關注。",
-  p2: "P2・中信心：規則觸發但分數中等，可能只是單一較弱訊號。",
-  observe: "Observe・觀察：分數低於 P2 門檻，僅供留意，非明確異常。",
+  p1: "P1 追蹤訊號：至少 3 條規則合流，且最終分數達到此標的的 P1 門檻。",
+  p2: "P2 追蹤訊號：至少一條標準或強觸發，但尚未同時滿足 P1 分數與規則數門檻。",
+  observe: "Observe 追蹤訊號：只有觀察強度的規則觸發，僅記錄、不推播。",
 };
+
+const triggerSeverityLabel = { p1: "強", p2: "標準", observe: "觀察" } as const;
+const triggerSeverityStyle = {
+  p1: "border-p1/40 bg-p1/10 text-p1",
+  p2: "border-p2/40 bg-p2/10 text-p2",
+  observe: "border-border-light bg-panel-3 text-text-dim",
+} as const;
+const observeRuleIds = new Set(["gap_up", "long_green_candle", "price_momentum"]);
+
+function getRuleTriggerSeverity(rule: ApiSignal["rules"][number]) {
+  return rule.trigger_severity ?? (observeRuleIds.has(rule.id) ? "observe" : "p2");
+}
 
 function fmtTime(iso: string) {
   return fmtDateTime(iso);
@@ -23,10 +35,12 @@ export function SignalOverlay({
   symbol,
   related,
   exchange,
+  p1Threshold,
 }: {
   symbol: string;
   related: ApiSignal[];
   exchange?: string;
+  p1Threshold: number;
 }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -116,23 +130,54 @@ export function SignalOverlay({
                   <span className="mono flex h-5 w-5 items-center justify-center rounded-full border border-border-light text-[11px] text-text-dim">
                     {index}
                   </span>
-                  <Tag className={severityColor[s.severity]}>{s.severity}</Tag>
+                  <span className="text-[10px] uppercase tracking-wide text-text-faint">追蹤訊號</span>
+                  <Tag className={severityColor[s.severity]}>{s.severity.toUpperCase()}</Tag>
                   <span className="mono">{s.score.toFixed(1)}</span>
                   <span className="mono ml-auto text-text-faint">{fmtTime(s.triggered_at)}</span>
                 </div>
                 <ul className="mt-2 space-y-1">
                   {s.rules.map((r) => (
-                    <li key={r.id} className="flex items-start gap-2 text-xs">
-                      <Tag className={categoryColor[r.category] ?? "text-text-dim border-border-light"}>{r.name}</Tag>
-                      <span className="text-text-dim">{r.detail || "—"}</span>
+                    <li key={r.id} className="grid grid-cols-[1fr_auto] gap-x-2 gap-y-1 border-b border-border/70 pb-2 text-xs last:border-0 last:pb-0">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <Tag className={categoryColor[r.category] ?? "text-text-dim border-border-light"}>{r.name}</Tag>
+                        <span className={`rounded border px-1.5 py-0.5 text-[10px] ${triggerSeverityStyle[getRuleTriggerSeverity(r)]}`}>
+                          規則強度：{triggerSeverityLabel[getRuleTriggerSeverity(r)]}
+                        </span>
+                      </div>
+                      <span className="mono text-cyan">+{(r.contribution ?? s.components[r.id] ?? 0).toFixed(2)}</span>
+                      <span className="col-span-2 text-text-dim">{r.detail || "—"}</span>
                     </li>
                   ))}
                 </ul>
+                <ScoreBreakdown signal={s} p1Threshold={p1Threshold} />
               </li>
             ))}
           </ul>
         )}
       </Panel>
+    </div>
+  );
+}
+
+function ScoreBreakdown({ signal, p1Threshold }: { signal: ApiSignal; p1Threshold: number }) {
+  const baseScore = Object.values(signal.components).reduce((sum, value) => sum + value, 0);
+  const hasConfluenceBonus = signal.rules.length >= 3;
+  const bonus = Math.max(0, signal.score - baseScore);
+
+  return (
+    <div className="mt-2 rounded border border-border bg-bg/50 p-2 text-[11px]">
+      <p className="mb-1.5 font-semibold text-text">追蹤訊號計分明細</p>
+      <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-text-dim">
+        <span>規則貢獻合計</span><span className="mono text-text">{baseScore.toFixed(2)}</span>
+        <span>{hasConfluenceBonus ? `${signal.rules.length} 條規則合流加成（15%）` : `規則合流加成（未滿 3 條）`}</span>
+        <span className={`mono ${hasConfluenceBonus ? "text-up" : "text-text-faint"}`}>{hasConfluenceBonus ? `+${bonus.toFixed(2)}` : "+0.00"}</span>
+        <span className="border-t border-border pt-1 font-semibold text-text">最終分數</span>
+        <span className="mono border-t border-border pt-1 font-semibold text-cyan">{signal.score.toFixed(2)}</span>
+        <span>P1 判定門檻</span><span className="mono">{p1Threshold.toFixed(2)} ＋ 至少 3 條</span>
+      </div>
+      <p className={`mt-2 font-semibold ${signal.severity === "p1" ? "text-p1" : signal.severity === "p2" ? "text-p2" : "text-text-dim"}`}>
+        判定結果：{signal.severity.toUpperCase()} 追蹤訊號
+      </p>
     </div>
   );
 }

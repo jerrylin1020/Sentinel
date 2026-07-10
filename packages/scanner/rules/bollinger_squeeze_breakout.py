@@ -30,6 +30,7 @@ def _band_width(closes: list[float], period: int, k: float) -> float | None:
     id="bollinger_squeeze_breakout",
     name="Bollinger Squeeze Breakout",
     category="technical",
+    trigger_severity="p2",
     description="Band-width contraction (squeeze) followed by a breakout above the upper band.",
     applies_to=["equity", "crypto"],
     weight=1.9,

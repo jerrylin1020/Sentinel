@@ -12,6 +12,7 @@ from packages.shared.types import Candle, RuleHit
     id="rsi_reversal",
     name="RSI Oversold Reversal",
     category="technical",
+    trigger_severity="p2",
     description="RSI crosses back above the oversold threshold.",
     applies_to=["equity", "crypto"],
     weight=1.6,

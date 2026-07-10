@@ -11,6 +11,7 @@ from packages.shared.types import Candle, RuleHit
     id="macd_cross",
     name="MACD Bullish Cross",
     category="technical",
+    trigger_severity="p2",
     description="MACD line crosses above its signal line.",
     applies_to=["equity", "crypto"],
     weight=1.7,

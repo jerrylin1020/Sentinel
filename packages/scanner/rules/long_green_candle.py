@@ -11,6 +11,7 @@ from packages.shared.types import Candle, RuleHit
     id="long_green_candle",
     name="Long Green Candle",
     category="technical",
+    trigger_severity="observe",
     description="Latest bar closes up with a body >= threshold of its open.",
     applies_to=["equity", "crypto"],
     weight=1.6,

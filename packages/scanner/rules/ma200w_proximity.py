@@ -15,6 +15,7 @@ from packages.shared.types import Candle, RuleHit
     id="ma200w_proximity",
     name="200-Week MA Proximity",
     category="technical",
+    trigger_severity="p2",
     description="Price is within a small band of its 200-week (≈1000-day) moving average.",
     applies_to=["equity", "crypto"],
     weight=1.8,

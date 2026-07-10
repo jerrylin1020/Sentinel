@@ -17,6 +17,7 @@ from packages.shared.types import FundingRatePoint, RuleHit
     id="funding_rate_spike",
     name="Funding Rate Spike",
     category="onchain",
+    trigger_severity="p2",
     description=(
         "Perpetual futures funding rate spikes beyond a threshold, "
         "signalling crowded long or short positioning."

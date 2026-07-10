@@ -51,6 +51,9 @@ export interface ApiSignalRule {
   name: string;
   category: string;
   detail: string;
+  trigger_severity?: Severity;
+  weight?: number;
+  contribution?: number;
 }
 
 export interface ApiSignal {
@@ -83,6 +86,7 @@ export interface ApiRule {
   id: string;
   name: string;
   category: string;
+  trigger_severity?: Severity;
   description: string;
   applies_to: string[];
   weight: number;

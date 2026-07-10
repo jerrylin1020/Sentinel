@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 
 from apps.api.db import get_session
 from apps.api.models import Rule, Severity, Signal, Symbol
+from packages.scanner.rules import registry
 
 router = APIRouter(prefix="/signals", tags=["signals"])
 
@@ -56,6 +57,12 @@ def list_signals(
                     "name": r.name if r else rid,
                     "category": r.category.value if r else "",
                     "detail": detail,
+                    "trigger_severity": entry.get(
+                        "trigger_severity",
+                        registry[rid].trigger_severity if rid in registry else "observe",
+                    ),
+                    "weight": entry.get("weight", r.weight if r else 1.0),
+                    "contribution": (sig.score_components or {}).get(rid, 0.0),
                 }
             )
             if r:

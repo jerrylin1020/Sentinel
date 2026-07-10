@@ -16,6 +16,7 @@ def _sma(candles: list[Candle], period: int) -> float:
     id="ma200_breakout",
     name="200MA Breakout",
     category="technical",
+    trigger_severity="p2",
     description="Latest close crosses above its trailing 200-bar moving average.",
     applies_to=["equity", "crypto"],
     weight=1.8,

@@ -11,6 +11,7 @@ from packages.shared.types import Candle, RuleHit
     id="price_momentum",
     name="Price Momentum",
     category="technical",
+    trigger_severity="observe",
     description="Close is up >= threshold over the trailing lookback window.",
     applies_to=["equity", "crypto"],
     weight=1.5,
