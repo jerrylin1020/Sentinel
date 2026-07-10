@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { apiDelete, apiPatch, apiPost, type ApiWatched } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { apiDelete, apiPatch, apiPost, searchSymbols, type ApiSymbolSuggestion, type ApiWatched } from "@/lib/api";
 
 const CHANNELS = ["telegram", "email", "line"];
 
@@ -40,6 +40,59 @@ export function WatchlistManager({
   const [name, setName] = useState("");
   const [assetType, setAssetType] = useState("equity");
   const [exchange, setExchange] = useState("");
+  const [suggestions, setSuggestions] = useState<ApiSymbolSuggestion[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [selectedTicker, setSelectedTicker] = useState("");
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const query = ticker.trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      setSearching(false);
+      setSearchError(null);
+      return;
+    }
+    if (query === selectedTicker) return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setSearching(true);
+      setSearchError(null);
+      try {
+        const results = await searchSymbols(query, assetType, controller.signal);
+        if (controller.signal.aborted) return;
+        setSuggestions(results);
+        setSuggestionsOpen(true);
+        setActiveSuggestion(-1);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setSuggestions([]);
+        setSuggestionsOpen(true);
+        setSearchError(err instanceof Error ? err.message : "代碼搜尋暫時無法使用");
+      } finally {
+        if (!controller.signal.aborted) setSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [ticker, assetType, selectedTicker]);
+
+  function selectSuggestion(suggestion: ApiSymbolSuggestion) {
+    setTicker(suggestion.ticker);
+    setName(suggestion.name);
+    setAssetType(suggestion.asset_type);
+    setExchange(suggestion.exchange);
+    setSelectedTicker(suggestion.ticker);
+    setSuggestions([]);
+    setSearchError(null);
+    setSuggestionsOpen(false);
+  }
 
   async function addSymbol(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +102,7 @@ export function WatchlistManager({
     try {
       await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
       setTicker(""); setName(""); setExchange("");
+      setSelectedTicker(""); setSuggestions([]); setSuggestionsOpen(false);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "新增標的失敗，請稍後再試。");
@@ -74,10 +128,69 @@ export function WatchlistManager({
   return (
     <div className="space-y-4 p-6">
       <form onSubmit={addSymbol} className="flex flex-wrap items-end gap-3 border-b border-border pb-5">
-        <Field label="Ticker">
-          <input value={ticker} onChange={(e) => setTicker(e.target.value)} placeholder="NVDA / BTCUSDT"
-          className="w-32 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
-        </Field>
+        <div className="relative flex flex-col gap-1">
+          <label htmlFor="watchlist-ticker" className="text-xs uppercase tracking-wider text-text-dim">Ticker</label>
+          <input
+            id="watchlist-ticker"
+            value={ticker}
+            onChange={(e) => {
+              setTicker(e.target.value.toUpperCase());
+              setSelectedTicker("");
+            }}
+            onFocus={() => suggestions.length > 0 && setSuggestionsOpen(true)}
+            onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 150)}
+            onKeyDown={(e) => {
+              if (!suggestionsOpen || suggestions.length === 0) return;
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setActiveSuggestion((current) => Math.min(current + 1, suggestions.length - 1));
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setActiveSuggestion((current) => Math.max(current - 1, 0));
+              } else if (e.key === "Enter" && activeSuggestion >= 0) {
+                e.preventDefault();
+                selectSuggestion(suggestions[activeSuggestion]);
+              } else if (e.key === "Escape") {
+                setSuggestionsOpen(false);
+              }
+            }}
+            placeholder={assetType === "crypto" ? "BTC / ETH" : "NVDA / Apple"}
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={suggestionsOpen}
+            aria-controls="ticker-suggestions"
+            aria-activedescendant={activeSuggestion >= 0 ? `ticker-suggestion-${activeSuggestion}` : undefined}
+            className="w-44 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm"
+          />
+          {searching && <span className="absolute right-2 top-[30px] text-xs text-text-faint">搜尋中…</span>}
+          {suggestionsOpen && suggestions.length > 0 && (
+            <ul id="ticker-suggestions" role="listbox" className="absolute left-0 top-full z-30 mt-1 max-h-72 w-80 overflow-y-auto rounded-lg border border-border-light bg-panel shadow-2xl">
+              {suggestions.map((suggestion, index) => (
+                <li
+                  id={`ticker-suggestion-${index}`}
+                  key={`${suggestion.asset_type}-${suggestion.ticker}`}
+                  role="option"
+                  aria-selected={activeSuggestion === index}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectSuggestion(suggestion)}
+                  className={`cursor-pointer px-3 py-2.5 ${activeSuggestion === index ? "bg-cyan/10" : "hover:bg-panel-2"}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <strong className="mono text-sm text-text">{suggestion.ticker}</strong>
+                    <span className="rounded border border-border-light px-1.5 py-0.5 text-[10px] text-text-dim">{suggestion.asset_type}</span>
+                    <span className="ml-auto text-xs text-text-faint">{suggestion.exchange}</span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-text-dim">{suggestion.name}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          {suggestionsOpen && !searching && ticker.trim().length >= 2 && suggestions.length === 0 && ticker !== selectedTicker && (
+            <p className={`absolute left-0 top-full z-30 mt-1 w-80 rounded-lg border bg-panel px-3 py-2.5 text-xs shadow-2xl ${searchError ? "border-down/40 text-down" : "border-border-light text-text-dim"}`}>
+              {searchError ?? "找不到接近的代碼，仍可手動輸入。"}
+            </p>
+          )}
+        </div>
         <Field label="名稱">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="NVIDIA"
           className="w-36 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />

@@ -109,6 +109,20 @@ export interface ApiWatched {
   };
 }
 
+export interface ApiSymbolSuggestion {
+  ticker: string;
+  name: string;
+  asset_type: "equity" | "crypto";
+  exchange: string;
+}
+
+export async function searchSymbols(query: string, assetType: string, signal?: AbortSignal) {
+  const params = new URLSearchParams({ q: query, asset_type: assetType });
+  const response = await fetch(`/api/symbols/search?${params}`, { signal });
+  if (!response.ok) throw new Error(`代碼搜尋失敗（${response.status}）`);
+  return (await response.json()) as ApiSymbolSuggestion[];
+}
+
 export const getSignals = (severity?: Severity) =>
   get<ApiSignal[]>(`/signals${severity ? `?severity=${severity}` : ""}`).then((d) => d ?? []);
 export const getRules = () => get<ApiRule[]>("/rules").then((d) => d ?? []);

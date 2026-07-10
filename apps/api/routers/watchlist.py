@@ -50,8 +50,5 @@ def remove_watched(watched_id: int, session: Session = Depends(get_session)):
     w = session.get(WatchedSymbol, watched_id)
     if not w:
         raise HTTPException(404, "not found")
-    sym = session.get(Symbol, w.symbol_id)
     session.delete(w)
-    if sym:
-        session.delete(sym)
     session.commit()
