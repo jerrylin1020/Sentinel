@@ -89,30 +89,30 @@ export default async function DashboardPage() {
 function PrioritySection({ severity, count, tickerCount, viewAllHref, children }: { severity: Severity; count: number; tickerCount?: number; viewAllHref?: string; children: React.ReactNode }) {
   return <section>
     <div className="mb-3 flex items-baseline gap-3">
-      <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-semibold ${SEVERITY_BADGE[severity]}`}><i className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_6px_currentColor]" />{SEVERITY_LABEL[severity]}</span>
-      <span className="font-mono text-xs text-text-dim">{count} 則{tickerCount != null && tickerCount > 0 && tickerCount < count ? ` · ${tickerCount} 個標的` : ""}</span>
-      {viewAllHref && count > 0 && <Link href={viewAllHref} className="ml-auto text-[11px] text-cyan">查看全部 →</Link>}
+      <span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[12px] font-semibold ${SEVERITY_BADGE[severity]}`}><i className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_6px_currentColor]" />{SEVERITY_LABEL[severity]}</span>
+      <span className="font-mono text-[13px] text-text-dim">{count} 則{tickerCount != null && tickerCount > 0 && tickerCount < count ? ` · ${tickerCount} 個標的` : ""}</span>
+      {viewAllHref && count > 0 && <Link href={viewAllHref} className="ml-auto text-[12px] text-cyan">查看全部 →</Link>}
     </div>
     {children}
   </section>;
 }
 
 function EmptyTier({ text }: { text: string }) {
-  return <div className="rounded-lg border border-border bg-panel px-5 py-4 text-[13px] text-text-faint">{text}</div>;
+  return <div className="rounded-lg border border-border bg-panel px-5 py-4 text-sm text-text-faint">{text}</div>;
 }
 
 function LeadCard({ group }: { group: SignalGroup }) {
   const { representative: signal, count, latestAt } = group;
   return <article className={`rounded-lg border p-6 ${signal.severity === "p1" ? "border-p1/35 bg-p1/[0.04]" : "border-p2/35 bg-p2/[0.04]"}`}>
-    <div className="mb-4 flex items-center justify-between gap-4"><span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[11px] font-semibold ${SEVERITY_BADGE[signal.severity]}`}><i className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_6px_currentColor]" />{signal.severity.toUpperCase()} · Composite signal{count > 1 ? ` · 連續觸發 ${count} 次` : ""}</span><span className="font-mono text-[11px] text-text-faint">{fmtHourMinute(latestAt)} · {signal.asset_type}</span></div>
+    <div className="mb-4 flex items-center justify-between gap-4"><span className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[12px] font-semibold ${SEVERITY_BADGE[signal.severity]}`}><i className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_6px_currentColor]" />{signal.severity.toUpperCase()} · Composite signal{count > 1 ? ` · 連續觸發 ${count} 次` : ""}</span><span className="font-mono text-[12px] text-text-faint">{fmtHourMinute(latestAt)} · {signal.asset_type}</span></div>
     <h2 className="max-w-3xl text-2xl font-semibold leading-tight tracking-tight text-text">{signal.ticker} · {signal.name}</h2>
-    <p className="mt-3 max-w-3xl text-[13.5px] leading-6 text-text-dim">{signal.rules.map((r) => r.detail || r.name).join(" · ")}</p>
+    <p className="mt-3 max-w-3xl text-[14.5px] leading-6 text-text-dim">{signal.rules.map((r) => r.detail || r.name).join(" · ")}</p>
     <div className="mt-5 grid items-end gap-5 border-y border-border py-4 sm:grid-cols-[auto_auto_1fr]">
-      <span className="font-mono text-[30px] font-semibold tracking-tight">{signal.price.toLocaleString()}</span>
-      <span className="font-mono text-sm font-semibold text-cyan">Score {signal.score.toFixed(1)}</span>
-      <div className="flex gap-5 sm:justify-end">{signal.rules.slice(0, 3).map((r) => <div key={r.id}><p className="text-[10px] uppercase tracking-[0.1em] text-text-dim">{r.category}</p><p className="mt-1 font-mono text-xs font-semibold">{r.name}</p></div>)}</div>
+      <span className="font-mono text-[32px] font-semibold tracking-tight">{signal.price.toLocaleString()}</span>
+      <span className="font-mono text-base font-semibold text-cyan">Score {signal.score.toFixed(1)}</span>
+      <div className="flex gap-5 sm:justify-end">{signal.rules.slice(0, 3).map((r) => <div key={r.id}><p className="text-[11px] uppercase tracking-[0.1em] text-text-dim">{r.category}</p><p className="mt-1 font-mono text-[13px] font-semibold">{r.name}</p></div>)}</div>
     </div>
-    <div className="mt-5 rounded-lg border border-cyan/25 bg-cyan/[0.06] p-4"><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-cyan">✦ Sentinel 觀點</p><p className="mt-1.5 leading-5 text-text">此訊號由 {signal.rules.length} 條規則共同構成。開啟完整分析可檢視每條規則與歷史觸發。</p></div>
+    <div className="mt-5 rounded-lg border border-cyan/25 bg-cyan/[0.06] p-4"><p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-cyan">✦ Sentinel 觀點</p><p className="mt-1.5 leading-5 text-text">此訊號由 {signal.rules.length} 條規則共同構成。開啟完整分析可檢視每條規則與歷史觸發。</p></div>
     <div className="mt-5 flex flex-wrap gap-2"><Link href={`/detail/${signal.ticker}`} className="toolbar-button toolbar-button-primary">開啟深度分析 →</Link><Link href="/watchlist" className="toolbar-button">★ 追蹤</Link><button className="toolbar-button border-transparent bg-transparent text-text-dim">靜音 4h</button></div>
   </article>;
 }
@@ -120,10 +120,10 @@ function LeadCard({ group }: { group: SignalGroup }) {
 function SignalCard({ group }: { group: SignalGroup }) {
   const { representative: signal, count, latestAt, history } = group;
   return <Link href={`/detail/${signal.ticker}#signal-${signal.id}`} className="block rounded-lg border border-border bg-panel p-4 transition-colors hover:border-border-light">
-    <div className="mb-2 flex items-center gap-2"><span className="font-mono text-[13.5px] font-bold text-text">{signal.ticker}</span>{count > 1 && <span className="rounded-full bg-cyan/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-cyan">×{count}</span>}<span className={`ml-auto rounded px-1.5 py-0.5 font-mono text-[11px] font-bold ${SEVERITY_BADGE[signal.severity]}`}>{signal.score.toFixed(1)}</span></div>
-    <p className="text-xs leading-5 text-text-dim">{signal.rules[0]?.detail || signal.rules[0]?.name || "訊號觸發"}</p>
+    <div className="mb-2 flex items-center gap-2"><span className="font-mono text-[14.5px] font-bold text-text">{signal.ticker}</span>{count > 1 && <span className="rounded-full bg-cyan/10 px-1.5 py-0.5 font-mono text-[11px] font-bold text-cyan">×{count}</span>}<span className={`ml-auto rounded px-1.5 py-0.5 font-mono text-[12px] font-bold ${SEVERITY_BADGE[signal.severity]}`}>{signal.score.toFixed(1)}</span></div>
+    <p className="text-[13px] leading-5 text-text-dim">{signal.rules[0]?.detail || signal.rules[0]?.name || "訊號觸發"}</p>
     {count > 1 && <Spark history={history} severity={signal.severity} />}
-    <p className="mt-2 font-mono text-[10.5px] text-text-faint">{fmtHourMinute(latestAt)}{count > 1 ? ` · 連續 ${count} 次觸發` : ""}</p>
+    <p className="mt-2 font-mono text-[11.5px] text-text-faint">{fmtHourMinute(latestAt)}{count > 1 ? ` · 連續 ${count} 次觸發` : ""}</p>
   </Link>;
 }
 
@@ -139,11 +139,11 @@ function Spark({ history, severity }: { history: ApiSignal[]; severity: Severity
 
 function ObserveRow({ group }: { group: SignalGroup }) {
   const { representative: signal, count, latestAt } = group;
-  return <Link href={`/detail/${signal.ticker}#signal-${signal.id}`} className="grid grid-cols-[90px_1fr_90px_60px] items-center gap-3 border-b border-border px-4 py-2.5 text-xs last:border-b-0 hover:bg-panel">
-    <span className="flex items-center gap-1.5 font-mono font-bold text-text">{signal.ticker}{count > 1 && <span className="rounded-full bg-cyan/10 px-1 py-0.5 font-mono text-[9px] font-bold text-cyan">×{count}</span>}</span>
+  return <Link href={`/detail/${signal.ticker}#signal-${signal.id}`} className="grid grid-cols-[90px_1fr_90px_60px] items-center gap-3 border-b border-border px-4 py-2.5 text-[13px] last:border-b-0 hover:bg-panel">
+    <span className="flex items-center gap-1.5 font-mono font-bold text-text">{signal.ticker}{count > 1 && <span className="rounded-full bg-cyan/10 px-1 py-0.5 font-mono text-[10px] font-bold text-cyan">×{count}</span>}</span>
     <span className="min-w-0 truncate text-text-dim">{signal.rules[0]?.detail || signal.rules[0]?.name || "訊號觸發"}</span>
-    <span className="font-mono text-[10px] text-text-faint">{fmtHourMinute(latestAt)}</span>
-    <span className="text-right font-mono text-[11px] text-text-dim">{signal.score.toFixed(1)}</span>
+    <span className="font-mono text-[11px] text-text-faint">{fmtHourMinute(latestAt)}</span>
+    <span className="text-right font-mono text-[12px] text-text-dim">{signal.score.toFixed(1)}</span>
   </Link>;
 }
 
