@@ -128,7 +128,7 @@ function SignalCard({ group }: { group: SignalGroup }) {
 }
 
 function Spark({ history, severity }: { history: ApiSignal[]; severity: Severity }) {
-  const bars = history.slice(-8);
+  const bars = history.slice(-10);
   const barColor = severity === "p1" ? "bg-p1" : severity === "p2" ? "bg-p2" : "bg-text-dim";
   // Each bar is one past trigger for this ticker (oldest -> newest, left to right);
   // height reflects that occurrence's score. Hover a bar to see its exact time/score.
