@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DashboardHeaderActions } from "@/components/dashboard/DashboardHeaderActions";
 import { getSignals, getWatchlist, type ApiSignal, type Severity } from "@/lib/api";
 import { fmtHourMinute } from "@/lib/format";
 
@@ -56,7 +57,7 @@ export default async function DashboardPage() {
   return <div>
     <header className="page-heading">
       <div><h1>儀表板</h1><p>目前觀察名單的最新異常與規則觸發</p></div>
-      <div className="flex items-center gap-2"><button className="toolbar-button">↻ 重掃</button><Link href="/rules" className="toolbar-button toolbar-button-primary">告警設定</Link></div>
+      <div className="flex items-center gap-2"><DashboardHeaderActions /><Link href="/rules" className="toolbar-button toolbar-button-primary">告警設定</Link></div>
     </header>
 
     <section className="grid gap-px border-b border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
@@ -129,8 +130,10 @@ function SignalCard({ group }: { group: SignalGroup }) {
 function Spark({ history, severity }: { history: ApiSignal[]; severity: Severity }) {
   const bars = history.slice(-8);
   const barColor = severity === "p1" ? "bg-p1" : severity === "p2" ? "bg-p2" : "bg-text-dim";
-  return <div className="mt-2 flex items-end gap-[3px]" aria-hidden="true">
-    {bars.map((s) => <span key={s.id} className={`w-[5px] rounded-sm opacity-70 ${barColor}`} style={{ height: `${Math.max(4, Math.min(16, Math.round((s.score / 5) * 16)))}px` }} />)}
+  // Each bar is one past trigger for this ticker (oldest -> newest, left to right);
+  // height reflects that occurrence's score. Hover a bar to see its exact time/score.
+  return <div className="mt-2 flex items-end gap-[3px]" title="每個長條代表一次過去的觸發，由左到右依時間排序">
+    {bars.map((s) => <span key={s.id} title={`${fmtHourMinute(s.triggered_at)} · Score ${s.score.toFixed(1)}`} className={`w-[5px] cursor-help rounded-sm opacity-70 ${barColor}`} style={{ height: `${Math.max(4, Math.min(16, Math.round((s.score / 5) * 16)))}px` }} />)}
   </div>;
 }
 
