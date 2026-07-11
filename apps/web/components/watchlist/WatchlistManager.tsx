@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiDelete, apiPatch, apiPost, searchSymbols, type ApiSymbolSuggestion, type ApiWatched } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const CHANNELS = ["telegram", "email", "line"];
 
@@ -35,6 +36,7 @@ export function WatchlistManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removedIds, setRemovedIds] = useState<Set<number>>(() => new Set());
+  const [pendingDelete, setPendingDelete] = useState<{ id: number; ticker: string } | null>(null);
   const visibleItems = initial.filter((item) => !removedIds.has(item.watched.id));
 
   // Add-symbol form state
@@ -113,13 +115,14 @@ export function WatchlistManager({
     }
   }
 
-  async function remove(id: number, t: string) {
-    if (!confirm(`確定要刪除 ${t}?`)) return;
+  async function remove() {
+    if (!pendingDelete) return;
     setBusy(true);
     setError(null);
     try {
-      await apiDelete(`/watchlist/${id}`);
-      setRemovedIds((current) => new Set(current).add(id));
+      await apiDelete(`/watchlist/${pendingDelete.id}`);
+      setRemovedIds((current) => new Set(current).add(pendingDelete.id));
+      setPendingDelete(null);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "刪除標的失敗，請稍後再試。");
@@ -219,11 +222,20 @@ export function WatchlistManager({
 
       <div className="space-y-2">
         {visibleItems.map((it) => (
-          <Row key={it.watched.id} item={it} allRules={allRules} onRemove={remove} onSaved={() => router.refresh()} />
+          <Row key={it.watched.id} item={it} allRules={allRules} onRemove={(id, ticker) => setPendingDelete({ id, ticker })} onSaved={() => router.refresh()} />
         ))}
         {visibleItems.length === 0 && <p className="text-sm text-text-dim">觀察名單是空的，用上面的表單新增。</p>}
       </div>
       </div>
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={`移除 ${pendingDelete?.ticker ?? "標的"}？`}
+        description="此操作會將標的從觀察名單移除；歷史訊號與分析資料會保留。"
+        confirmLabel="確認移除"
+        pending={busy}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={remove}
+      />
     </div>
   );
 }
