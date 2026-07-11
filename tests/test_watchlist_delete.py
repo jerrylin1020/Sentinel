@@ -1,9 +1,11 @@
 from sqlalchemy import event
 from sqlalchemy.pool import StaticPool
+import pytest
+from fastapi import HTTPException
 from sqlmodel import Session, SQLModel, create_engine
 
 from apps.api.models import AssetType, Rule, RuleCategory, Severity, Signal, Symbol, WatchedSymbol
-from apps.api.routers.watchlist import remove_watched
+from apps.api.routers.watchlist import add_symbol, remove_watched
 
 
 def test_remove_watchlist_keeps_symbol_and_signal_history():
@@ -49,3 +51,24 @@ def test_remove_watchlist_keeps_symbol_and_signal_history():
         assert session.get(WatchedSymbol, watched.id) is None
         assert session.get(Symbol, symbol.id) is not None
         assert session.get(Signal, signal.id) is not None
+
+
+def test_add_watchlist_rejects_an_existing_symbol_of_the_same_type():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        symbol = Symbol(ticker="NVDA", name="NVIDIA", asset_type=AssetType.equity, exchange="NASDAQ")
+        session.add(symbol)
+        session.commit()
+        session.refresh(symbol)
+        session.add(WatchedSymbol(symbol_id=symbol.id))
+        session.commit()
+
+        with pytest.raises(HTTPException) as error:
+            add_symbol(
+                Symbol(ticker="nvda", name="NVIDIA", asset_type=AssetType.equity, exchange="NASDAQ"),
+                session,
+            )
+
+        assert error.value.status_code == 409
+        assert error.value.detail == "NVDA 已在觀察名單中"

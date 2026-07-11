@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { apiPatch, categoryColor, type ApiRule } from "@/lib/api";
+import { SyncStatus } from "@/components/ui/SyncStatus";
 
 // Human-readable label for each timeframe/data_source combo. Falls back to
 // the raw value (e.g. "1d") for any timeframe not listed here.
@@ -40,6 +41,7 @@ function getTriggerSeverity(rule: ApiRule) {
 
 export function RulesManager({ initial }: { initial: ApiRule[] }) {
   const router = useRouter();
+  const [isRefreshing, startRefresh] = useTransition();
   const [filter, setFilter] = useState<string>("all");
 
   const categories = useMemo(() => {
@@ -73,9 +75,10 @@ export function RulesManager({ initial }: { initial: ApiRule[] }) {
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {visible.map((r) => (
-          <RuleCard key={r.id} rule={r} onSaved={() => router.refresh()} />
+          <RuleCard key={r.id} rule={r} onSaved={() => startRefresh(() => router.refresh())} />
         ))}
       </div>
+      <SyncStatus active={isRefreshing} label="正在同步規則" />
     </div>
   );
 }

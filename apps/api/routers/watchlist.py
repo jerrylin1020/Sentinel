@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from apps.api.db import get_session
@@ -21,6 +22,25 @@ def list_watchlist(session: Session = Depends(get_session)):
 
 @router.post("", status_code=201)
 def add_symbol(payload: Symbol, session: Session = Depends(get_session)):
+    payload.ticker = payload.ticker.upper()
+    existing_symbol = session.exec(
+        select(Symbol).where(
+            func.upper(Symbol.ticker) == payload.ticker,
+            Symbol.asset_type == payload.asset_type,
+        )
+    ).first()
+    if existing_symbol:
+        existing_watched = session.exec(
+            select(WatchedSymbol).where(WatchedSymbol.symbol_id == existing_symbol.id)
+        ).first()
+        if existing_watched:
+            raise HTTPException(409, f"{payload.ticker} 已在觀察名單中")
+        watched = WatchedSymbol(symbol_id=existing_symbol.id, enabled_rules=["volume_spike_2x"], channels=["telegram"])
+        session.add(watched)
+        session.commit()
+        session.refresh(watched)
+        return {"symbol": existing_symbol, "watched": watched}
+
     session.add(payload)
     session.commit()
     session.refresh(payload)

@@ -16,7 +16,12 @@ type SymbolSuggestion = {
   exchange: string;
 };
 
+type BinanceTicker = {
+  symbol?: string;
+};
+
 const SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search";
+const BINANCE_TICKERS_URL = "https://api.binance.com/api/v3/ticker/price";
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q")?.trim().toUpperCase() ?? "";
@@ -26,12 +31,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "invalid search query" }, { status: 400 });
   }
 
-  const upstream = new URL(SEARCH_URL);
-  upstream.searchParams.set("q", query);
-  upstream.searchParams.set("quotesCount", "12");
-  upstream.searchParams.set("newsCount", "0");
-
   try {
+    if (assetType === "crypto") {
+      const suggestions = await searchBinanceSymbols(query);
+      return NextResponse.json(suggestions, {
+        headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+      });
+    }
+
+    const upstream = new URL(SEARCH_URL);
+    upstream.searchParams.set("q", query);
+    upstream.searchParams.set("quotesCount", "12");
+    upstream.searchParams.set("newsCount", "0");
     const response = await fetch(upstream, {
       headers: { "User-Agent": "Mozilla/5.0 (Sentinel symbol search)" },
       next: { revalidate: 600 },
@@ -88,4 +99,30 @@ function normalizeQuote(quote: YahooQuote, assetType: "equity" | "crypto"): Symb
     asset_type: "crypto",
     exchange: "BINANCE",
   };
+}
+
+async function searchBinanceSymbols(query: string): Promise<SymbolSuggestion[]> {
+  const response = await fetch(BINANCE_TICKERS_URL, {
+    next: { revalidate: 3600 },
+  });
+  if (!response.ok) {
+    console.error("[symbol-search] Binance request failed", { status: response.status, query });
+    throw new Error("crypto symbol provider unavailable");
+  }
+
+  const payload = (await response.json()) as BinanceTicker[];
+  return payload
+    .filter(({ symbol }) => {
+      const ticker = symbol?.toUpperCase() ?? "";
+      const baseAsset = ticker.slice(0, -4);
+      return ticker.endsWith("USDT") && (ticker.includes(query) || baseAsset.includes(query));
+    })
+    .sort((a, b) => (a.symbol?.length ?? 0) - (b.symbol?.length ?? 0))
+    .slice(0, 8)
+    .map(({ symbol }) => ({
+      ticker: symbol!,
+      name: `${symbol!.slice(0, -4)} / USDT`,
+      asset_type: "crypto" as const,
+      exchange: "BINANCE",
+    }));
 }

@@ -1,13 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { apiDelete, apiPatch, apiPost, searchSymbols, type ApiSymbolSuggestion, type ApiWatched } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OperationLoadingDialog } from "@/components/ui/OperationLoadingDialog";
+import { SyncStatus } from "@/components/ui/SyncStatus";
 
 const CHANNELS = ["telegram", "email", "line"];
 
 type RuleOption = { id: string; name: string; category: string; applies_to: string[] };
+type CreatedWatchlistResponse = ApiWatched | (ApiWatched["watched"] & { symbol_id?: number });
 
 // Category display order + accent color (dot + active chip). Falls back to text-dim/gray for unknown categories.
 const CATEGORY_ORDER = ["volume", "technical", "flow", "onchain", "news", "composite"];
@@ -33,16 +36,20 @@ export function WatchlistManager({
   allRules: RuleOption[];
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const [isRefreshing, startRefresh] = useTransition();
+  const [isAdding, setIsAdding] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removedIds, setRemovedIds] = useState<Set<number>>(() => new Set());
   const [addedItems, setAddedItems] = useState<ApiWatched[]>([]);
+  const [pendingAddition, setPendingAddition] = useState<{ ticker: string; name: string; assetType: string } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: number; ticker: string } | null>(null);
   const initialIds = new Set(initial.map((item) => item.watched.id));
   const visibleItems = [
     ...initial.filter((item) => !removedIds.has(item.watched.id)),
     ...addedItems.filter((item) => !initialIds.has(item.watched.id) && !removedIds.has(item.watched.id)),
-  ];
+  ].filter(isCompleteWatchlistItem);
+  const watchedSymbols = new Set(visibleItems.map((item) => `${item.symbol.asset_type}:${item.symbol.ticker.toUpperCase()}`));
 
   // Add-symbol form state
   const [ticker, setTicker] = useState("");
@@ -55,6 +62,10 @@ export function WatchlistManager({
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [selectedTicker, setSelectedTicker] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  function refreshWatchlist() {
+    startRefresh(() => router.refresh());
+  }
 
   useEffect(() => {
     const query = ticker.trim();
@@ -106,36 +117,47 @@ export function WatchlistManager({
   async function addSymbol(e: React.FormEvent) {
     e.preventDefault();
     if (!ticker.trim()) return;
-    setBusy(true);
+    const nextTicker = ticker.toUpperCase();
+    if (watchedSymbols.has(`${assetType}:${nextTicker}`)) {
+      setError(`${nextTicker} 已在觀察名單中，無法重複新增。`);
+      return;
+    }
+    setIsAdding(true);
+    setPendingAddition({ ticker: nextTicker, name, assetType });
     setError(null);
     try {
-      const response = await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
-      const added = (await response.json()) as ApiWatched;
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      const response = await apiPost("/watchlist", { ticker: nextTicker, name, asset_type: assetType, exchange });
+      const added = normalizeCreatedWatchlist(
+        (await response.json()) as CreatedWatchlistResponse,
+        { ticker: nextTicker, name, assetType, exchange },
+      );
       setAddedItems((current) => [...current.filter((item) => item.watched.id !== added.watched.id), added]);
       setTicker(""); setName(""); setExchange("");
       setSelectedTicker(""); setSuggestions([]); setSuggestionsOpen(false);
-      router.refresh();
+      refreshWatchlist();
     } catch (err) {
       setError(err instanceof Error ? err.message : "新增標的失敗，請稍後再試。");
     } finally {
-      setBusy(false);
+      setPendingAddition(null);
+      setIsAdding(false);
     }
   }
 
   async function remove() {
     if (!pendingDelete) return;
-    setBusy(true);
+    setIsDeleting(true);
     setError(null);
     try {
       await apiDelete(`/watchlist/${pendingDelete.id}`);
       setRemovedIds((current) => new Set(current).add(pendingDelete.id));
       setAddedItems((current) => current.filter((item) => item.watched.id !== pendingDelete.id));
       setPendingDelete(null);
-      router.refresh();
+      refreshWatchlist();
     } catch (err) {
       setError(err instanceof Error ? err.message : "刪除標的失敗，請稍後再試。");
     } finally {
-      setBusy(false);
+      setIsDeleting(false);
     }
   }
 
@@ -222,16 +244,18 @@ export function WatchlistManager({
           <input value={exchange} onChange={(e) => setExchange(e.target.value)} placeholder="NASDAQ / BINANCE"
             className="w-32 rounded-md border border-border-light bg-panel px-2.5 py-1.5 text-sm" />
         </Field>
-        <button disabled={busy} className="rounded-md border border-cyan bg-cyan px-3 py-1.5 text-sm font-semibold text-bg hover:bg-blue disabled:opacity-50">
-          ＋ 新增標的
+        <button disabled={isAdding} className="inline-flex items-center gap-2 rounded-md border border-cyan bg-cyan px-3 py-1.5 text-sm font-semibold text-bg hover:bg-blue disabled:opacity-50">
+          {isAdding && <span className="loading-orbit border-bg/35 border-t-bg" aria-hidden="true" />}
+          {isAdding ? "新增中…" : "＋ 新增標的"}
         </button>
       </form>
       {error && <p role="alert" className="rounded-md border border-down/40 bg-down/10 px-3 py-2 text-xs text-down">{error}</p>}
 
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {visibleItems.map((it) => (
-          <Row key={it.watched.id} item={it} allRules={allRules} onRemove={(id, ticker) => setPendingDelete({ id, ticker })} onSaved={() => router.refresh()} />
+          <Row key={it.watched.id} item={it} allRules={allRules} onRemove={(id, ticker) => setPendingDelete({ id, ticker })} onSaved={refreshWatchlist} />
         ))}
+        {pendingAddition && <PendingRow item={pendingAddition} />}
         {visibleItems.length === 0 && <p className="text-sm text-text-dim">觀察名單是空的，用上面的表單新增。</p>}
       </div>
       </div>
@@ -240,10 +264,53 @@ export function WatchlistManager({
         title={`移除 ${pendingDelete?.ticker ?? "標的"}？`}
         description="此操作會將標的從觀察名單移除；歷史訊號與分析資料會保留。"
         confirmLabel="確認移除"
-        pending={busy}
+        pending={isDeleting}
+        pendingTitle={`正在移除 ${pendingDelete?.ticker ?? "標的"}`}
+        pendingDescription="正在同步觀察名單，請稍候…"
         onCancel={() => setPendingDelete(null)}
         onConfirm={remove}
       />
+      <OperationLoadingDialog
+        open={isAdding}
+        title={`正在新增 ${pendingAddition?.ticker ?? "標的"}`}
+        description="正在同步觀察名單，請稍候…"
+      />
+      <SyncStatus active={isRefreshing} label="正在同步觀察名單" />
+    </div>
+  );
+}
+
+function normalizeCreatedWatchlist(
+  response: CreatedWatchlistResponse,
+  fallback: { ticker: string; name: string; assetType: string; exchange: string },
+): ApiWatched {
+  if ("symbol" in response && "watched" in response && response.symbol) return response;
+
+  const watched = response as ApiWatched["watched"] & { symbol_id?: number };
+  return {
+    watched,
+    symbol: {
+      id: watched.symbol_id ?? -watched.id,
+      ticker: fallback.ticker,
+      name: fallback.name || fallback.ticker,
+      asset_type: fallback.assetType,
+      exchange: fallback.exchange,
+    },
+  };
+}
+
+function isCompleteWatchlistItem(item: ApiWatched): item is ApiWatched {
+  return Boolean(item?.watched && item.symbol && typeof item.symbol.ticker === "string");
+}
+
+function PendingRow({ item }: { item: { ticker: string; name: string; assetType: string } }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-cyan/35 bg-cyan/[0.05] p-4 text-text-dim" role="status" aria-live="polite">
+      <span className="loading-orbit" aria-hidden="true" />
+      <span className="mono text-lg font-semibold text-text">{item.ticker}</span>
+      <span className="text-sm">{item.name || "正在建立標的"}</span>
+      <span className="mono rounded border border-border-light px-1.5 py-0.5 text-[11px]">{item.assetType}</span>
+      <span className="ml-auto text-xs text-cyan">正在新增…</span>
     </div>
   );
 }
@@ -266,6 +333,7 @@ function Row({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rulesExpanded, setRulesExpanded] = useState(false);
 
   function toggle(list: string[], setList: (v: string[]) => void, v: string) {
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -289,6 +357,9 @@ function Row({
           return acc;
         }, [])
     );
+  const rulesSummary = groupedRules
+    .map(([category, ruleList]) => `${CATEGORY_LABEL[category] ?? category} ${ruleList.filter((rule) => rules.includes(rule.id)).length}/${ruleList.length}`)
+    .join(" · ");
 
   async function save() {
     setSaving(true);
@@ -313,7 +384,7 @@ function Row({
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center gap-3">
         <span className="mono text-lg font-semibold">{item.symbol.ticker}</span>
-        <span className="text-sm text-text-dim">{item.symbol.name}</span>
+        <span className="min-w-0 truncate text-sm text-text-dim">{item.symbol.name}</span>
         <span className="mono rounded border border-border-light px-1.5 py-0.5 text-[11px] text-text-dim">
           {item.symbol.asset_type}
         </span>
@@ -323,14 +394,14 @@ function Row({
         </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-start gap-4">
-        <div className="flex max-w-52 flex-col gap-1">
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-wider text-text-dim">P1 門檻</span>
           <input type="number" step="0.5" value={threshold} onChange={(e) => { setThreshold(+e.target.value); setSaved(false); }}
             className="w-20 rounded border border-border-light bg-panel-2 px-2 py-1" />
           <span className="text-[11px] leading-4 text-text-faint">加權分數達 {threshold}，且至少 3 條規則同時觸發，才判定為 P1</span>
         </div>
-        <div className="flex max-w-52 flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className="text-xs uppercase tracking-wider text-text-dim">量倍數</span>
           <input type="number" step="0.1" value={mult} onChange={(e) => { setMult(+e.target.value); setSaved(false); }}
             className="w-20 rounded border border-border-light bg-panel-2 px-2 py-1" />
@@ -349,19 +420,22 @@ function Row({
       </div>
 
       <div className="mt-3 border-t border-border pt-3">
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wider text-text-dim">啟用規則</span>
-          <span className="mono text-xs text-up">
-            {enabledApplicableCount} / {applicable.length} 適用
-          </span>
-          {excludedCount > 0 && (
-            <span className="text-[11px] text-text-faint">
-              僅顯示適用於 {item.symbol.asset_type} 的規則（已自動排除 {excludedCount} 條不適用規則）
-            </span>
-          )}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-wider text-text-dim">啟用規則 <span className="mono text-up">{enabledApplicableCount} / {applicable.length}</span></p>
+            <p className="mt-1 truncate text-[11px] text-text-faint">{rulesSummary}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRulesExpanded((current) => !current)}
+            aria-expanded={rulesExpanded}
+            className="shrink-0 text-xs text-cyan hover:text-blue"
+          >
+            {rulesExpanded ? "收合規則 ↑" : "展開規則 ↓"}
+          </button>
         </div>
 
-        <div className="space-y-2">
+        {rulesExpanded && <div className="mt-3 space-y-2">
           {groupedRules.map(([category, ruleList]) => {
             const style = CATEGORY_STYLE[category] ?? DEFAULT_CATEGORY_STYLE;
             const allOn = ruleList.every((r) => rules.includes(r.id));
@@ -407,7 +481,8 @@ function Row({
               </div>
             );
           })}
-        </div>
+          {excludedCount > 0 && <p className="text-[11px] text-text-faint">已自動排除 {excludedCount} 條不適用於 {item.symbol.asset_type} 的規則。</p>}
+        </div>}
       </div>
 
       <div className="mt-3 flex items-center gap-2">

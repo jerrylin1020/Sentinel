@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sentinel Watchlist · Two-column preview</title>
+  <style>
+    :root { --bg:#0a0c10; --panel:#111418; --panel-2:#171b21; --line:#282e37; --text:#e6e8ec; --dim:#99a3b3; --faint:#647080; --blue:#6ea8fe; --red:#f87171; --amber:#fbbf24; --green:#4ade80; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--text); background:var(--bg); font:15px/1.45 Inter,"Noto Sans TC",system-ui,sans-serif; }
+    .app { min-height:100vh; display:grid; grid-template-columns:220px minmax(0,1fr); }
+    aside { position:sticky; top:0; height:100vh; padding:18px 14px; border-right:1px solid var(--line); background:#090b0f; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:17px; padding:7px 9px 22px; }
+    .mark { width:27px; height:27px; display:grid; place-items:center; border-radius:7px; color:#07111e; background:var(--blue); font-size:16px; }
+    .search { color:var(--faint); border:1px solid var(--line); background:var(--panel); border-radius:7px; padding:11px; font-size:13px; }
+    .nav-label { margin:26px 10px 7px; color:var(--faint); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .nav { display:flex; align-items:center; gap:11px; padding:10px; border-radius:7px; color:var(--dim); margin:2px 0; }
+    .nav.active { color:var(--text); background:var(--panel-2); }
+    .nav .count { margin-left:auto; padding:1px 7px; border-radius:999px; color:var(--blue); background:#162238; font:12px ui-monospace,monospace; }
+    main { min-width:0; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:20px 28px; border-bottom:1px solid var(--line); }
+    h1 { margin:0; font-size:25px; letter-spacing:-.03em; } .sub { margin:4px 0 0; color:var(--dim); }
+    .muted { color:var(--faint); font-size:12px; } .pill { border:1px solid var(--line); padding:7px 11px; border-radius:7px; color:var(--dim); font-size:13px; }
+    .content { padding:24px 28px 44px; }
+    .add { display:grid; grid-template-columns:1.3fr 1.5fr .9fr 1.2fr auto; align-items:end; gap:12px; padding:16px; border:1px solid var(--line); background:var(--panel); }
+    label { display:block; margin-bottom:6px; color:var(--dim); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+    input, select { width:100%; border:1px solid #303842; border-radius:7px; padding:10px; color:var(--text); background:var(--panel-2); font:15px inherit; }
+    button { border:0; border-radius:7px; padding:10px 14px; cursor:pointer; font:600 14px inherit; }
+    .primary { color:#09101b; background:var(--blue); } .primary:hover { background:#8ab8ff; }
+    .bar { display:flex; justify-content:space-between; align-items:center; margin:26px 0 12px; }
+    .bar strong { font-size:14px; } .legend { color:var(--faint); font-size:13px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+    .card { overflow:hidden; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+    .card-head { display:flex; align-items:center; gap:10px; padding:17px 18px; border-bottom:1px solid var(--line); }
+    .ticker { font:700 21px ui-monospace,"SFMono-Regular",monospace; letter-spacing:-.04em; }
+    .name { color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .type { color:var(--faint); border:1px solid #36404b; border-radius:5px; padding:2px 6px; font:11px ui-monospace,monospace; }
+    .delete { margin-left:auto; color:var(--red); border:1px solid #66343a; background:transparent; padding:6px 9px; font-size:12px; }
+    .settings { display:grid; grid-template-columns:1fr 1fr 1.5fr; gap:12px; padding:16px 18px; }
+    .setting label { margin-bottom:5px; } .value { min-height:38px; display:flex; align-items:center; gap:7px; border:1px solid #303842; border-radius:7px; padding:0 10px; color:var(--text); background:var(--panel-2); font:16px ui-monospace,monospace; }
+    .switch { width:27px; height:16px; border-radius:999px; background:var(--blue); position:relative; } .switch:after { content:""; width:11px; height:11px; position:absolute; top:2.5px; right:2.5px; border-radius:50%; background:#fff; }
+    .rules { border-top:1px solid var(--line); padding:13px 18px 15px; }
+    .rules-summary { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .summary { color:var(--dim); font-size:13px; } .summary b { color:var(--green); font:600 13px ui-monospace,monospace; }
+    .expand { color:var(--blue); padding:4px 0; background:transparent; font-size:13px; }
+    .detail { display:none; margin-top:13px; padding-top:12px; border-top:1px dashed #333a44; }
+    .card.open .detail { display:block; }
+    .rule-group { margin-bottom:10px; color:var(--dim); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; } .chip { border:1px solid #3e4651; border-radius:999px; padding:4px 8px; color:var(--dim); background:var(--panel-2); font-size:12px; text-transform:none; letter-spacing:0; font-weight:500; }
+    .chip.on { border-color:#356daf; color:var(--blue); background:#10223c; }
+    .card-foot { display:flex; justify-content:flex-end; gap:10px; padding:0 18px 16px; }
+    .save { color:var(--blue); border:1px solid #356daf; background:#10223c; padding:7px 10px; font-size:12px; }
+    @media (max-width:1180px) { .app { grid-template-columns:1fr; } aside { display:none; } .grid { grid-template-columns:1fr; } }
+    @media (max-width:760px) { header,.content { padding-left:16px; padding-right:16px; } .add,.settings { grid-template-columns:1fr 1fr; } .add .primary { grid-column:1/-1; } .settings .setting:last-child { grid-column:1/-1; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand"><span class="mark">◉</span>Sentinel <span class="muted">v0.2</span></div>
+      <div class="search">⌕　搜尋或指令…</div>
+      <p class="nav-label">Overview</p>
+      <div class="nav">▦　Dashboard</div><div class="nav">⌁　Signals <span class="count">12</span></div><div class="nav active">◉　Watchlist <span class="count">45</span></div><div class="nav">⌁　Detail</div><div class="nav">▤　Rules</div>
+      <p class="nav-label">Alerts</p><div class="nav">♧　P1 today</div><div class="nav">▤　Digest</div>
+    </aside>
+    <main>
+      <header><div><h1>觀察名單</h1><p class="sub">6 個標的 · 管理個別告警門檻與推播通路</p></div><span class="pill">兩欄檢視 · Desktop</span></header>
+      <div class="content">
+        <form class="add"><div><label>Ticker</label><input value="輸入代碼…" aria-label="Ticker" /></div><div><label>名稱</label><input value="自動帶入或手動輸入" aria-label="名稱" /></div><div><label>類型</label><select aria-label="類型"><option>equity</option><option>crypto</option></select></div><div><label>交易所</label><input value="NASDAQ / BINANCE" aria-label="交易所" /></div><button class="primary" type="button">＋ 新增標的</button></form>
+        <div class="bar"><strong>已追蹤標的</strong><span class="legend">預設顯示重點設定；展開後才編輯規則。</span></div>
+        <section class="grid">
+          <article class="card"><div class="card-head"><span class="ticker">NVDA</span><span class="name">NVIDIA Corporation</span><span class="type">equity</span><button class="delete">刪除</button></div><div class="settings"><div class="setting"><label>P1 門檻</label><div class="value">7.0</div></div><div class="setting"><label>量倍數</label><div class="value">2.0×</div></div><div class="setting"><label>推播</label><div class="value"><span class="switch"></span> Telegram</div></div></div><div class="rules"><div class="rules-summary"><span class="summary"><b>13 / 13</b> 條規則適用 · Volume 1 · Technical 12</span><button class="expand">展開規則 ↓</button></div><div class="detail"><div class="rule-group">Volume <div class="chips"><span class="chip on">Volume Spike</span></div></div><div class="rule-group">Technical <div class="chips"><span class="chip on">Golden Cross</span><span class="chip on">MACD Bullish Cross</span><span class="chip">RSI Oversold</span></div></div></div></div><div class="card-foot"><button class="save">儲存設定</button></div></article>
+          <article class="card"><div class="card-head"><span class="ticker">RKLB</span><span class="name">Rocket Lab Corporation</span><span class="type">equity</span><button class="delete">刪除</button></div><div class="settings"><div class="setting"><label>P1 門檻</label><div class="value">6.5</div></div><div class="setting"><label>量倍數</label><div class="value">2.2×</div></div><div class="setting"><label>推播</label><div class="value"><span class="switch"></span> Telegram</div></div></div><div class="rules"><div class="rules-summary"><span class="summary"><b>10 / 13</b> 條規則適用 · Volume 1 · Technical 9</span><button class="expand">展開規則 ↓</button></div><div class="detail"><div class="rule-group">Volume <div class="chips"><span class="chip on">Volume Spike</span></div></div><div class="rule-group">Technical <div class="chips"><span class="chip on">52-Week High</span><span class="chip on">Price Momentum</span><span class="chip">Golden Cross</span></div></div></div></div><div class="card-foot"><button class="save">儲存設定</button></div></article>
+          <article class="card"><div class="card-head"><span class="ticker">MSFT</span><span class="name">Microsoft Corporation</span><span class="type">equity</span><button class="delete">刪除</button></div><div class="settings"><div class="setting"><label>P1 門檻</label><div class="value">7.0</div></div><div class="setting"><label>量倍數</label><div class="value">1.8×</div></div><div class="setting"><label>推播</label><div class="value"><span class="switch"></span> Telegram</div></div></div><div class="rules"><div class="rules-summary"><span class="summary"><b>8 / 13</b> 條規則適用 · Volume 1 · Technical 7</span><button class="expand">展開規則 ↓</button></div><div class="detail"><div class="rule-group">Technical <div class="chips"><span class="chip on">Bollinger Break</span><span class="chip">Gap Up</span><span class="chip on">200MA Breakout</span></div></div></div></div><div class="card-foot"><button class="save">儲存設定</button></div></article>
+          <article class="card"><div class="card-head"><span class="ticker">BTCUSDT</span><span class="name">Bitcoin / Tether</span><span class="type">crypto</span><button class="delete">刪除</button></div><div class="settings"><div class="setting"><label>P1 門檻</label><div class="value">7.5</div></div><div class="setting"><label>量倍數</label><div class="value">2.5×</div></div><div class="setting"><label>推播</label><div class="value"><span class="switch"></span> Telegram</div></div></div><div class="rules"><div class="rules-summary"><span class="summary"><b>9 / 14</b> 條規則適用 · Volume 1 · Technical 8</span><button class="expand">展開規則 ↓</button></div><div class="detail"><div class="rule-group">On-chain <div class="chips"><span class="chip on">Funding Rate Spike</span><span class="chip">Open Interest</span></div></div></div></div><div class="card-foot"><button class="save">儲存設定</button></div></article>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script>document.querySelectorAll('.expand').forEach(button => button.addEventListener('click', () => { const card = button.closest('.card'); const isOpen = card.classList.toggle('open'); button.textContent = isOpen ? '收合規則 ↑' : '展開規則 ↓'; }));</script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const MUTATION_PROXY = "/api/backend";
+const MUTATION_TIMEOUT_MS = 20_000;
 
 async function get<T>(path: string): Promise<T | null> {
   try {
@@ -20,16 +21,29 @@ async function get<T>(path: string): Promise<T | null> {
 
 // --- Client-side mutations (called from "use client" components) ---
 async function mutate(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {
-  const res = await fetch(`${MUTATION_PROXY}${path}`, {
-    method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(detail || `儲存失敗（${res.status}）`);
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), MUTATION_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${MUTATION_PROXY}${path}`, {
+      method,
+      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(detail || `儲存失敗（${res.status}）`);
+    }
+    return res;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("服務回應逾時，未確認刪除是否完成；請重新整理後再確認觀察名單。");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
   }
-  return res;
 }
 
 export async function apiPost(path: string, body: unknown) {

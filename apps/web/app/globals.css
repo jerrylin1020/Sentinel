@@ -97,3 +97,21 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: 72px;
 }
+
+.route-loading-boundary { min-height: 100vh; }
+.route-loading { position: fixed; inset: 0 0 auto; z-index: 60; pointer-events: none; }
+.route-loading-bar { height: 3px; width: 62%; background: var(--cyan); box-shadow: 0 0 14px rgba(110, 168, 254, 0.7); animation: route-progress 1.2s ease-in-out infinite; transform-origin: left; }
+.route-loading-label { position: fixed; top: 14px; left: 50%; display: flex; align-items: center; gap: 8px; transform: translateX(-50%); border: 1px solid var(--border-light); border-radius: 999px; background: rgba(17, 20, 24, 0.92); padding: 7px 12px; color: var(--text); font-size: 12px; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); backdrop-filter: blur(10px); }
+.loading-orbit, .dialog-loading-orbit { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(110, 168, 254, 0.24); border-top-color: var(--cyan); border-radius: 999px; animation: loading-spin 0.7s linear infinite; }
+.dialog-loading-orbit { float: right; width: 22px; height: 22px; }
+.sync-status { position: fixed; bottom: 20px; left: 50%; z-index: 45; display: flex; align-items: center; gap: 8px; transform: translateX(-50%); border: 1px solid var(--border-light); border-radius: 999px; background: rgba(17, 20, 24, 0.94); padding: 8px 12px; color: var(--text); font-size: 12px; font-weight: 600; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35); backdrop-filter: blur(10px); }
+.sync-status-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--cyan); box-shadow: 0 0 0 5px rgba(110, 168, 254, 0.13); animation: sync-pulse 1.25s ease-in-out infinite; }
+.sync-status-bars { display: flex; gap: 3px; margin-left: 2px; }
+.sync-status-bars i { width: 8px; height: 4px; border-radius: 999px; background: var(--text-faint); animation: sync-bars 1s ease-in-out infinite; }
+.sync-status-bars i:nth-child(2) { background: var(--cyan); animation-delay: 0.14s; }
+.sync-status-bars i:nth-child(3) { animation-delay: 0.28s; }
+@keyframes route-progress { 0% { transform: scaleX(0.2); } 50% { transform: scaleX(1); } 100% { transform: scaleX(0.45); } }
+@keyframes loading-spin { to { transform: rotate(360deg); } }
+@keyframes sync-pulse { 50% { box-shadow: 0 0 0 8px rgba(110, 168, 254, 0); } }
+@keyframes sync-bars { 50% { transform: scaleX(1.45); opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .route-loading-bar, .loading-orbit, .dialog-loading-orbit, .sync-status-dot, .sync-status-bars i { animation: none; } }
