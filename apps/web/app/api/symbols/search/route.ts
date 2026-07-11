@@ -21,7 +21,10 @@ type BinanceTicker = {
 };
 
 const SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search";
-const BINANCE_TICKERS_URL = "https://api.binance.com/api/v3/ticker/price";
+const BINANCE_TICKERS_URLS = [
+  "https://data-api.binance.vision/api/v3/ticker/price",
+  "https://api.binance.com/api/v3/ticker/price",
+];
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q")?.trim().toUpperCase() ?? "";
@@ -102,15 +105,28 @@ function normalizeQuote(quote: YahooQuote, assetType: "equity" | "crypto"): Symb
 }
 
 async function searchBinanceSymbols(query: string): Promise<SymbolSuggestion[]> {
-  const response = await fetch(BINANCE_TICKERS_URL, {
-    next: { revalidate: 3600 },
-  });
-  if (!response.ok) {
-    console.error("[symbol-search] Binance request failed", { status: response.status, query });
-    throw new Error("crypto symbol provider unavailable");
+  let lastError = "no response";
+
+  for (const url of BINANCE_TICKERS_URLS) {
+    try {
+      const response = await fetch(url, { next: { revalidate: 3600 } });
+      if (!response.ok) {
+        lastError = `status ${response.status}`;
+        continue;
+      }
+
+      const payload = (await response.json()) as BinanceTicker[];
+      return toCryptoSuggestions(payload, query);
+    } catch (error) {
+      lastError = String(error);
+    }
   }
 
-  const payload = (await response.json()) as BinanceTicker[];
+  console.error("[symbol-search] Binance requests failed", { query, lastError });
+  throw new Error("crypto symbol provider unavailable");
+}
+
+function toCryptoSuggestions(payload: BinanceTicker[], query: string): SymbolSuggestion[] {
   return payload
     .filter(({ symbol }) => {
       const ticker = symbol?.toUpperCase() ?? "";
