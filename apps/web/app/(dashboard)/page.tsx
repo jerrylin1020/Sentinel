@@ -4,22 +4,24 @@ import { fmtHourMinute } from "@/lib/format";
 
 export default async function DashboardPage() {
   const [signals, watchlist] = await Promise.all([getSignals(), getWatchlist()]);
-  const p1 = signals.filter((s) => s.severity === "p1");
-  const p2 = signals.filter((s) => s.severity === "p2");
-  const lead = signals[0];
-  const remaining = signals.slice(1, 8);
+  const watchedTickers = new Set(watchlist.map((item) => item.symbol.ticker));
+  const activeSignals = signals.filter((signal) => watchedTickers.has(signal.ticker));
+  const p1 = activeSignals.filter((s) => s.severity === "p1");
+  const p2 = activeSignals.filter((s) => s.severity === "p2");
+  const lead = activeSignals[0];
+  const remaining = activeSignals.slice(1, 8);
 
   return <div>
     <header className="page-heading">
-      <div><h1>儀表板</h1><p>最新市場異常與規則觸發</p></div>
+      <div><h1>儀表板</h1><p>目前觀察名單的最新異常與規則觸發</p></div>
       <div className="flex items-center gap-2"><button className="toolbar-button">↻ 重掃</button><Link href="/rules" className="toolbar-button toolbar-button-primary">告警設定</Link></div>
     </header>
 
     <section className="grid gap-px border-b border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
       <Stat label="今日 P1" value={p1.length} detail="高信心觸發" accent="text-p1" />
       <Stat label="今日 P2" value={p2.length} detail="中信心觸發" accent="text-p2" />
-      <Stat label="觸發標的" value={new Set(signals.map((s) => s.ticker)).size} detail={`觀察名單 ${watchlist.length} 個`} />
-      <Stat label="平均分數" value={signals.length ? (signals.reduce((sum, s) => sum + s.score, 0) / signals.length).toFixed(1) : "—"} detail={signals.length ? `${signals.length} 則訊號` : "等待下一次掃描"} />
+      <Stat label="觸發標的" value={new Set(activeSignals.map((s) => s.ticker)).size} detail={`觀察名單 ${watchlist.length} 個`} />
+      <Stat label="平均分數" value={activeSignals.length ? (activeSignals.reduce((sum, s) => sum + s.score, 0) / activeSignals.length).toFixed(1) : "—"} detail={activeSignals.length ? `${activeSignals.length} 則目前訊號` : "等待下一次掃描"} />
     </section>
 
     {lead ? <section className="grid gap-px border-b border-border bg-border xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
@@ -41,4 +43,4 @@ export default async function DashboardPage() {
 }
 
 function Stat({ label, value, detail, accent = "text-text" }: { label: string; value: string | number; detail: string; accent?: string }) { return <div className="stat-block"><p className="stat-label">{label}</p><p className={`stat-value ${accent}`}>{value}</p><p className="stat-detail">{detail}</p></div>; }
-function EmptyDashboard() { return <div className="px-6 py-16 text-center"><p className="text-sm text-text-dim">目前沒有訊號。系統每 5 分鐘自動掃描，出現異常會即時顯示。</p></div>; }
+function EmptyDashboard() { return <div className="px-6 py-16 text-center"><p className="text-sm text-text-dim">目前觀察名單沒有訊號。系統每 5 分鐘自動掃描；歷史訊號可在 Signals 頁面查看。</p></div>; }

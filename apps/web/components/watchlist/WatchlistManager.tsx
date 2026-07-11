@@ -36,8 +36,13 @@ export function WatchlistManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removedIds, setRemovedIds] = useState<Set<number>>(() => new Set());
+  const [addedItems, setAddedItems] = useState<ApiWatched[]>([]);
   const [pendingDelete, setPendingDelete] = useState<{ id: number; ticker: string } | null>(null);
-  const visibleItems = initial.filter((item) => !removedIds.has(item.watched.id));
+  const initialIds = new Set(initial.map((item) => item.watched.id));
+  const visibleItems = [
+    ...initial.filter((item) => !removedIds.has(item.watched.id)),
+    ...addedItems.filter((item) => !initialIds.has(item.watched.id) && !removedIds.has(item.watched.id)),
+  ];
 
   // Add-symbol form state
   const [ticker, setTicker] = useState("");
@@ -104,7 +109,9 @@ export function WatchlistManager({
     setBusy(true);
     setError(null);
     try {
-      await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
+      const response = await apiPost("/watchlist", { ticker: ticker.toUpperCase(), name, asset_type: assetType, exchange });
+      const added = (await response.json()) as ApiWatched;
+      setAddedItems((current) => [...current.filter((item) => item.watched.id !== added.watched.id), added]);
       setTicker(""); setName(""); setExchange("");
       setSelectedTicker(""); setSuggestions([]); setSuggestionsOpen(false);
       router.refresh();
@@ -122,6 +129,7 @@ export function WatchlistManager({
     try {
       await apiDelete(`/watchlist/${pendingDelete.id}`);
       setRemovedIds((current) => new Set(current).add(pendingDelete.id));
+      setAddedItems((current) => current.filter((item) => item.watched.id !== pendingDelete.id));
       setPendingDelete(null);
       router.refresh();
     } catch (err) {
