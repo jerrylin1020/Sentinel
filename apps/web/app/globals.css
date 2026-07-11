@@ -72,9 +72,9 @@ body {
   .rail-count { @apply ml-auto rounded-full bg-panel px-1.5 py-0.5 font-mono text-[10px] text-text-faint; }
   .rail-link-active .rail-count { background: color-mix(in srgb, var(--cyan) 10%, transparent); color: var(--cyan); }
   .stat-block { @apply bg-bg px-5 py-4; }
-  .stat-label { @apply text-xs font-medium text-text-dim; }
-  .stat-value { @apply mt-1.5 text-[30px] font-semibold leading-none tracking-tight; }
-  .stat-detail { @apply mt-1.5 font-mono text-xs text-text-faint; }
+  .stat-label { @apply text-[13px] font-medium text-text-dim; }
+  .stat-value { @apply mt-1.5 text-[32px] font-semibold leading-none tracking-tight; }
+  .stat-detail { @apply mt-1.5 font-mono text-[13px] text-text-faint; }
   .panel-flat { @apply border border-border bg-panel; }
   .section-label { @apply text-xs font-semibold uppercase tracking-[0.1em] text-text-dim; }
 }
