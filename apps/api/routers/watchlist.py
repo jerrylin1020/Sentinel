@@ -3,9 +3,13 @@ from sqlalchemy import func
 from sqlmodel import Session, select
 
 from apps.api.db import get_session
-from apps.api.models import Symbol, WatchedSymbol
+from apps.api.models import Rule, Symbol, WatchedSymbol
 
 router = APIRouter(prefix="/watchlist", tags=["watchlist"])
+
+
+def default_enabled_rules(session: Session) -> list[str]:
+    return sorted(rule.id for rule in session.exec(select(Rule)).all())
 
 
 @router.get("")
@@ -35,7 +39,11 @@ def add_symbol(payload: Symbol, session: Session = Depends(get_session)):
         ).first()
         if existing_watched:
             raise HTTPException(409, f"{payload.ticker} 已在觀察名單中")
-        watched = WatchedSymbol(symbol_id=existing_symbol.id, enabled_rules=["volume_spike_2x"], channels=["telegram"])
+        watched = WatchedSymbol(
+            symbol_id=existing_symbol.id,
+            enabled_rules=default_enabled_rules(session),
+            channels=["telegram"],
+        )
         session.add(watched)
         session.commit()
         session.refresh(watched)
@@ -44,7 +52,11 @@ def add_symbol(payload: Symbol, session: Session = Depends(get_session)):
     session.add(payload)
     session.commit()
     session.refresh(payload)
-    watched = WatchedSymbol(symbol_id=payload.id, enabled_rules=["volume_spike_2x"], channels=["telegram"])
+    watched = WatchedSymbol(
+        symbol_id=payload.id,
+        enabled_rules=default_enabled_rules(session),
+        channels=["telegram"],
+    )
     session.add(watched)
     session.commit()
     session.refresh(watched)

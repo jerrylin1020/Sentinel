@@ -72,3 +72,21 @@ def test_add_watchlist_rejects_an_existing_symbol_of_the_same_type():
 
         assert error.value.status_code == 409
         assert error.value.detail == "NVDA 已在觀察名單中"
+
+
+def test_add_watchlist_enables_every_rule_by_default():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        session.add_all([
+            Rule(id="volume_spike_2x", name="Volume Spike", category=RuleCategory.volume, applies_to=["equity", "crypto"]),
+            Rule(id="golden_cross", name="Golden Cross", category=RuleCategory.technical, applies_to=["equity", "crypto"]),
+        ])
+        session.commit()
+
+        result = add_symbol(
+            Symbol(ticker="GLW", name="Corning", asset_type=AssetType.equity, exchange="NYSE"),
+            session,
+        )
+
+        assert result["watched"].enabled_rules == ["golden_cross", "volume_spike_2x"]
