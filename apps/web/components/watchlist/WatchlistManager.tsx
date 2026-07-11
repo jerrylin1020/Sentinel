@@ -62,6 +62,22 @@ export function WatchlistManager({
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [selectedTicker, setSelectedTicker] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [tickerFilter, setTickerFilter] = useState("");
+  const [assetFilter, setAssetFilter] = useState<"all" | "equity" | "crypto">("all");
+  const [sortBy, setSortBy] = useState<"recent" | "ticker" | "threshold" | "volume">("recent");
+
+  const filteredItems = [...visibleItems]
+    .filter((item) => {
+      const matchesTicker = item.symbol.ticker.toUpperCase().includes(tickerFilter.trim().toUpperCase());
+      const matchesAssetType = assetFilter === "all" || item.symbol.asset_type === assetFilter;
+      return matchesTicker && matchesAssetType;
+    })
+    .sort((a, b) => {
+      if (sortBy === "ticker") return a.symbol.ticker.localeCompare(b.symbol.ticker);
+      if (sortBy === "threshold") return b.watched.p1_score_threshold - a.watched.p1_score_threshold;
+      if (sortBy === "volume") return b.watched.volume_multiplier - a.watched.volume_multiplier;
+      return 0;
+    });
 
   function refreshWatchlist() {
     startRefresh(() => router.refresh());
@@ -251,12 +267,48 @@ export function WatchlistManager({
       </form>
       {error && <p role="alert" className="rounded-md border border-down/40 bg-down/10 px-3 py-2 text-xs text-down">{error}</p>}
 
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-panel px-3 py-2.5">
+        <label htmlFor="watchlist-filter" className="sr-only">篩選代碼</label>
+        <input
+          id="watchlist-filter"
+          value={tickerFilter}
+          onChange={(event) => setTickerFilter(event.target.value.toUpperCase())}
+          placeholder="⌕ 篩選代碼，例如 NVDA"
+          className="w-52 rounded-md border border-border-light bg-bg px-2.5 py-1.5 text-sm placeholder:text-text-faint"
+        />
+        <span className="font-mono text-xs text-text-dim">{filteredItems.length} / {visibleItems.length} 個標的</span>
+        <span className="hidden h-5 border-l border-border sm:block" />
+        <span className="text-xs text-text-dim">只顯示</span>
+        {(["all", "equity", "crypto"] as const).map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => setAssetFilter(type)}
+            className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${assetFilter === type ? "border-cyan/60 bg-cyan/10 text-cyan" : "border-transparent text-text-dim hover:border-border-light hover:bg-panel-2"}`}
+          >
+            {type === "all" ? "全部" : type === "equity" ? "Stock" : "Crypto"}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-text-dim">排序</span>
+        <select
+          value={sortBy}
+          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
+          className="rounded-md border border-border-light bg-bg px-2.5 py-1.5 text-sm"
+        >
+          <option value="recent">最近新增</option>
+          <option value="ticker">代碼 A → Z</option>
+          <option value="threshold">P1 門檻（高 → 低）</option>
+          <option value="volume">量倍數（高 → 低）</option>
+        </select>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {visibleItems.map((it) => (
+        {filteredItems.map((it) => (
           <Row key={it.watched.id} item={it} allRules={allRules} onRemove={(id, ticker) => setPendingDelete({ id, ticker })} onSaved={refreshWatchlist} />
         ))}
         {pendingAddition && <PendingRow item={pendingAddition} />}
         {visibleItems.length === 0 && <p className="text-sm text-text-dim">觀察名單是空的，用上面的表單新增。</p>}
+        {visibleItems.length > 0 && filteredItems.length === 0 && <p className="py-12 text-center text-sm text-text-dim xl:col-span-2">找不到符合的標的，請調整篩選條件。</p>}
       </div>
       </div>
       <ConfirmDialog
