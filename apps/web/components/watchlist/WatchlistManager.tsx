@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { apiDelete, apiPatch, apiPost, searchSymbols, type ApiSymbolSuggestion, type ApiWatched } from "@/lib/api";
@@ -435,7 +436,7 @@ function Row({
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center gap-3">
-        <span className="mono text-lg font-semibold">{item.symbol.ticker}</span>
+        <Link href={`/detail/${item.symbol.ticker}`} className="mono text-lg font-semibold text-text hover:text-cyan hover:underline">{item.symbol.ticker}</Link>
         <span className="min-w-0 truncate text-sm text-text-dim">{item.symbol.name}</span>
         <span className="mono rounded border border-border-light px-1.5 py-0.5 text-[11px] text-text-dim">
           {item.symbol.asset_type}

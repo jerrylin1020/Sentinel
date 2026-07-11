@@ -21,9 +21,11 @@ export default async function DashboardPage() {
   // Split into severity tiers so the dashboard can dedicate a section to each
   // one (P1 hero, P2 grid, Observe list) instead of a single time-sorted feed
   // where a lower-confidence signal could bury dozens of P2 triggers.
-  const p1 = activeSignals.filter((s) => s.severity === "p1");
-  const p2 = activeSignals.filter((s) => s.severity === "p2");
-  const observe = activeSignals.filter((s) => s.severity === "observe");
+  // Within each tier, highest score first so the strongest signals lead.
+  const byScoreDesc = (a: ApiSignal, b: ApiSignal) => b.score - a.score;
+  const p1 = activeSignals.filter((s) => s.severity === "p1").sort(byScoreDesc);
+  const p2 = activeSignals.filter((s) => s.severity === "p2").sort(byScoreDesc);
+  const observe = activeSignals.filter((s) => s.severity === "observe").sort(byScoreDesc);
 
   return <div>
     <header className="page-heading">
