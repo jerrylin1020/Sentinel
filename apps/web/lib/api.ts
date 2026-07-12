@@ -137,11 +137,22 @@ export async function searchSymbols(query: string, assetType: string, signal?: A
   return (await response.json()) as ApiSymbolSuggestion[];
 }
 
-export const getSignals = (severity?: Severity, options?: { signalDate?: string; days?: number }) => {
+export const getSignals = (severity?: Severity, options?: {
+  signalDate?: string;
+  days?: number;
+  limit?: number;
+  offset?: number;
+  ticker?: string;
+  sort?: "latest" | "score_desc" | "score_asc";
+}) => {
   const params = new URLSearchParams();
   if (severity) params.set("severity", severity);
   if (options?.signalDate) params.set("signal_date", options.signalDate);
   if (options?.days) params.set("days", String(options.days));
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.offset) params.set("offset", String(options.offset));
+  if (options?.ticker) params.set("ticker", options.ticker);
+  if (options?.sort && options.sort !== "latest") params.set("sort", options.sort);
   const query = params.toString();
   return get<ApiSignal[]>(`/signals${query ? `?${query}` : ""}`).then((d) => d ?? []);
 };

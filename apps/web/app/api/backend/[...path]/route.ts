@@ -7,8 +7,7 @@ async function proxy(request: NextRequest, { params }: { params: { path: string[
   const url = new URL(request.url);
   const target = `${base}/${params.path.join("/")}${url.search}`;
   const isRead = request.method === "GET" || request.method === "HEAD";
-  const isCandles = params.path[0] === "candles";
-  const ttl = isCandles ? 300 : 30;
+  const ttl = 30;
   const tag = `sentinel:/${params.path[0]}`;
   const response = await fetch(target, {
     method: request.method,

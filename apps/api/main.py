@@ -43,7 +43,7 @@ async def cache_public_reads(request: Request, call_next):
     # can replay deleted rows after a successful DELETE.
     cacheable = path in {"/signals", "/rules", "/health"} or path.startswith("/candles/")
     if request.method == "GET" and response.status_code == 200 and cacheable:
-        ttl = 300 if path.startswith("/candles/") else 30
+        ttl = 30
         response.headers["Cache-Control"] = f"public, s-maxage={ttl}, stale-while-revalidate={ttl * 4}"
     return response
 

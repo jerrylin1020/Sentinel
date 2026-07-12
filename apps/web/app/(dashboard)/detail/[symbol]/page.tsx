@@ -3,8 +3,15 @@ import { getSignals, getWatchlist } from "@/lib/api";
 
 export default async function DetailPage({ params }: { params: { symbol: string } }) {
   const symbol = decodeURIComponent(params.symbol);
-  const [all, watchlist] = await Promise.all([getSignals(), getWatchlist()]);
-  const related = all.filter((s) => s.ticker === symbol);
+  const [signals, watchlist] = await Promise.all([
+    getSignals(undefined, { ticker: symbol, limit: 500 }),
+    getWatchlist(),
+  ]);
+  // Keep this client-side guard while local web points at a deployed API that
+  // may not yet understand `ticker`. Once the API supports it, this is a
+  // harmless no-op; before then it prevents another ticker's detail from
+  // appearing under this route.
+  const related = signals.filter((signal) => signal.ticker === symbol);
   const head = related[0];
   const watched = watchlist.find((w) => w.symbol.ticker === symbol);
 

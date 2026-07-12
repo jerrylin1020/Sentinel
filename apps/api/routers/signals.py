@@ -2,6 +2,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from apps.api.db import get_session
@@ -16,11 +17,21 @@ TAIPEI = ZoneInfo("Asia/Taipei")
 def list_signals(
     severity: Severity | None = None,
     limit: int = 100,
+    offset: int = 0,
+    ticker: str | None = None,
+    sort: str = "latest",
     signal_date: date | None = None,
     days: int | None = None,
     session: Session = Depends(get_session),
 ):
     stmt = select(Signal)
+    if ticker:
+        symbol = session.exec(
+            select(Symbol).where(func.upper(Symbol.ticker) == ticker.upper())
+        ).first()
+        if symbol is None:
+            return []
+        stmt = stmt.where(Signal.symbol_id == symbol.id)
     if severity is not None:
         stmt = stmt.where(Signal.severity == severity)
     if signal_date or days:
@@ -31,7 +42,15 @@ def list_signals(
         end = datetime.combine(end_day + timedelta(days=1), time.min, TAIPEI).astimezone(timezone.utc)
         stmt = stmt.where(Signal.triggered_at >= start, Signal.triggered_at < end)
 
-    stmt = stmt.order_by(Signal.triggered_at.desc()).limit(limit)
+    bounded_limit = min(max(limit, 1), 500)
+    bounded_offset = max(offset, 0)
+    if sort == "score_desc":
+        stmt = stmt.order_by(Signal.score.desc(), Signal.triggered_at.desc())
+    elif sort == "score_asc":
+        stmt = stmt.order_by(Signal.score.asc(), Signal.triggered_at.desc())
+    else:
+        stmt = stmt.order_by(Signal.triggered_at.desc())
+    stmt = stmt.offset(bounded_offset).limit(bounded_limit)
 
     signals = session.exec(stmt).all()
 

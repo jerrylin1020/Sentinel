@@ -1,16 +1,29 @@
-"""Signal de-duplication (handoff §5 / §13).
-
-A dedup key collapses "same symbol + same rule set" within a time bucket so the
-user is not spammed. The default bucket is 1 hour.
-"""
+"""Stable identity for one continuous signal state."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import hashlib
+import json
 
 
-def dedup_key(ticker: str, rule_ids: list[str], when: datetime | None = None, bucket_hours: int = 1) -> str:
-    when = when or datetime.now(timezone.utc)
-    bucket = int(when.timestamp() // (bucket_hours * 3600))
-    rules = "+".join(sorted(rule_ids))
-    return f"{ticker}:{rules}:{bucket}"
+def dedup_key(
+    ticker: str,
+    rule_ids: list[str],
+    severity: str,
+    score: float,
+    score_components: dict[str, float],
+) -> str:
+    """Return an identity that ignores live price/detail changes.
+
+    The same rules, severity, and score are one ongoing signal. A changed
+    price or rule detail (for example, a candle body percentage) only refreshes
+    that signal's latest snapshot.
+    """
+    payload = {
+        "ticker": ticker.upper(),
+        "rules": sorted(rule_ids),
+        "severity": severity,
+        "score": round(score, 4),
+        "components": {rule_id: round(value, 4) for rule_id, value in sorted(score_components.items())},
+    }
+    return hashlib.sha256(json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()).hexdigest()

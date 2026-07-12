@@ -15,13 +15,15 @@ from __future__ import annotations
 from sqlmodel import Session, select
 
 from apps.api.db import engine, init_db
-from apps.api.models import Rule, Severity, Signal, Symbol, WatchedSymbol
+from apps.api.models import Rule, Severity, Signal, Symbol, WatchedSymbol, utcnow
 from apps.api.services.seed import seed_all
 from packages.data.crypto.binance import fetch_klines, fetch_funding_rate
 from packages.data.equity.yahoo import fetch_candles
 from packages.notifier import dispatch
 from packages.scanner.deduper import dedup_key
 from packages.scanner.engine import scan_symbol
+
+CONTINUITY_ACTIVE_KEY = "_sentinel_continuity_active"
 
 
 def run_scan() -> list[dict]:
@@ -76,19 +78,64 @@ def run_scan() -> list[dict]:
                 rule_weights=rule_weights,
             )
 
+            latest = session.exec(
+                select(Signal)
+                .where(Signal.symbol_id == sym.id)
+                .order_by(Signal.triggered_at.desc())
+            ).first()
+
             if not result.hits:
+                if latest and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
+                    latest.extra = {**(latest.extra or {}), CONTINUITY_ACTIVE_KEY: False}
+                    session.add(latest)
+                    session.commit()
                 entry["hits"] = 0
                 summary.append(entry)
                 continue
 
             detail = "; ".join(h.detail for h in result.hits)
-            key = dedup_key(sym.ticker, [h.rule_id for h in result.hits])
-            if session.exec(select(Signal).where(Signal.dedup_key == key)).first():
-                entry["deduped"] = True
+            key = dedup_key(
+                sym.ticker,
+                [h.rule_id for h in result.hits],
+                result.score.severity,
+                result.score.score,
+                result.score.components,
+            )
+            signal_extra = {
+                h.rule_id: {
+                    "detail": h.detail,
+                    "metrics": h.metrics,
+                    "trigger_severity": h.severity,
+                    "weight": rule_weights.get(h.rule_id, 1.0),
+                }
+                for h in result.hits
+            }
+            signal_extra[CONTINUITY_ACTIVE_KEY] = True
+            primary = result.hits[0]
+
+            if latest and latest.dedup_key == key and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
+                latest.triggered_at = utcnow()
+                latest.score = result.score.score
+                latest.score_components = result.score.components
+                latest.price_at_trigger = primary.metrics.get("price", 0.0)
+                latest.volume_multiplier = primary.metrics.get("volume_multiplier", 0.0)
+                latest.extra = signal_extra
+                session.add(latest)
+                session.commit()
+                entry.update({
+                    "signal_id": latest.id,
+                    "merged": True,
+                    "severity": result.score.severity,
+                    "score": result.score.score,
+                    "detail": detail,
+                })
                 summary.append(entry)
                 continue
 
-            primary = result.hits[0]
+            if latest and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
+                latest.extra = {**(latest.extra or {}), CONTINUITY_ACTIVE_KEY: False}
+                session.add(latest)
+
             signal = Signal(
                 symbol_id=sym.id,
                 rule_id=primary.rule_id,
@@ -97,18 +144,9 @@ def run_scan() -> list[dict]:
                 score_components=result.score.components,
                 price_at_trigger=primary.metrics.get("price", 0.0),
                 volume_multiplier=primary.metrics.get("volume_multiplier", 0.0),
-                # Keep the human-readable "why" (e.g. "Closed above upper Bollinger
-                # band (312.08)") alongside raw metrics so the UI can show exactly
-                # which rule fired and why, not just its category.
-                extra={
-                    h.rule_id: {
-                        "detail": h.detail,
-                        "metrics": h.metrics,
-                        "trigger_severity": h.severity,
-                        "weight": rule_weights.get(h.rule_id, 1.0),
-                    }
-                    for h in result.hits
-                },
+                # Keep the human-readable "why" alongside raw metrics, while the
+                # private continuity flag lets a reappearing signal start a new row.
+                extra=signal_extra,
                 dedup_key=key,
             )
             session.add(signal)
