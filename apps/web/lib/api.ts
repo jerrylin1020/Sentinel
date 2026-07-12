@@ -137,8 +137,14 @@ export async function searchSymbols(query: string, assetType: string, signal?: A
   return (await response.json()) as ApiSymbolSuggestion[];
 }
 
-export const getSignals = (severity?: Severity) =>
-  get<ApiSignal[]>(`/signals${severity ? `?severity=${severity}` : ""}`).then((d) => d ?? []);
+export const getSignals = (severity?: Severity, options?: { signalDate?: string; days?: number }) => {
+  const params = new URLSearchParams();
+  if (severity) params.set("severity", severity);
+  if (options?.signalDate) params.set("signal_date", options.signalDate);
+  if (options?.days) params.set("days", String(options.days));
+  const query = params.toString();
+  return get<ApiSignal[]>(`/signals${query ? `?${query}` : ""}`).then((d) => d ?? []);
+};
 export const getRules = () => get<ApiRule[]>("/rules").then((d) => d ?? []);
 export const getWatchlist = () => get<ApiWatched[]>("/watchlist").then((d) => d ?? []);
 

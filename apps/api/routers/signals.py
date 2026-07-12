@@ -1,3 +1,6 @@
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
+
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
@@ -6,17 +9,29 @@ from apps.api.models import Rule, Severity, Signal, Symbol
 from packages.scanner.rules import registry
 
 router = APIRouter(prefix="/signals", tags=["signals"])
+TAIPEI = ZoneInfo("Asia/Taipei")
 
 
 @router.get("")
 def list_signals(
     severity: Severity | None = None,
     limit: int = 100,
+    signal_date: date | None = None,
+    days: int | None = None,
     session: Session = Depends(get_session),
 ):
-    stmt = select(Signal).order_by(Signal.triggered_at.desc()).limit(limit)
+    stmt = select(Signal)
     if severity is not None:
         stmt = stmt.where(Signal.severity == severity)
+    if signal_date or days:
+        end_day = signal_date or datetime.now(TAIPEI).date()
+        range_days = min(max(days or 1, 1), 31)
+        start_day = end_day - timedelta(days=range_days - 1)
+        start = datetime.combine(start_day, time.min, TAIPEI).astimezone(timezone.utc)
+        end = datetime.combine(end_day + timedelta(days=1), time.min, TAIPEI).astimezone(timezone.utc)
+        stmt = stmt.where(Signal.triggered_at >= start, Signal.triggered_at < end)
+
+    stmt = stmt.order_by(Signal.triggered_at.desc()).limit(limit)
 
     signals = session.exec(stmt).all()
 

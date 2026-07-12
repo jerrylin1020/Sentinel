@@ -3,6 +3,17 @@ import { DashboardHeaderActions } from "@/components/dashboard/DashboardHeaderAc
 import { getSignals, getWatchlist, type ApiSignal, type Severity } from "@/lib/api";
 import { fmtHourMinute } from "@/lib/format";
 
+function taipeiDate(offsetDays = 0) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(Date.now() - offsetDays * 86_400_000));
+  const value = (type: string) => parts.find((part) => part.type === type)?.value;
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
 const SEVERITY_BADGE: Record<Severity, string> = {
   p1: "bg-p1/10 text-p1",
   p2: "bg-p2/10 text-p2",
@@ -38,7 +49,7 @@ function groupByTicker(signals: ApiSignal[]): SignalGroup[] {
 }
 
 export default async function DashboardPage() {
-  const [signals, watchlist] = await Promise.all([getSignals(), getWatchlist()]);
+  const [signals, watchlist] = await Promise.all([getSignals(undefined, { signalDate: taipeiDate() }), getWatchlist()]);
   const watchedTickers = new Set(watchlist.map((item) => item.symbol.ticker));
   const activeSignals = signals.filter((signal) => watchedTickers.has(signal.ticker));
   // Split into severity tiers so the dashboard can dedicate a section to each
