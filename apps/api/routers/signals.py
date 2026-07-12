@@ -11,6 +11,32 @@ from packages.scanner.rules import registry
 
 router = APIRouter(prefix="/signals", tags=["signals"])
 TAIPEI = ZoneInfo("Asia/Taipei")
+MAX_COMPACT_SOURCE_ROWS = 2_000
+
+
+def _signal_state_key(signal: Signal) -> tuple:
+    """Identity for collapsing legacy rows from one continuous signal state."""
+    components = tuple(
+        sorted((rule_id, round(float(value), 4)) for rule_id, value in (signal.score_components or {}).items())
+    )
+    return signal.severity.value, round(signal.score, 4), signal.rule_id, components
+
+
+def _collapse_legacy_continuous_signals(signals: list[Signal]) -> list[Signal]:
+    """Keep the latest row from each uninterrupted state per symbol.
+
+    Rows arrive newest first. Other symbols may be interleaved, so continuity
+    is tracked separately for each symbol. A changed state starts a new event.
+    """
+    latest_state_by_symbol: dict[int, tuple] = {}
+    collapsed: list[Signal] = []
+    for signal in signals:
+        state = _signal_state_key(signal)
+        if latest_state_by_symbol.get(signal.symbol_id) == state:
+            continue
+        latest_state_by_symbol[signal.symbol_id] = state
+        collapsed.append(signal)
+    return collapsed
 
 
 @router.get("")
@@ -44,15 +70,19 @@ def list_signals(
 
     bounded_limit = min(max(limit, 1), 500)
     bounded_offset = max(offset, 0)
+    # Continuity has to be determined in chronological order before any
+    # presentation sort is applied.
+    stmt = stmt.order_by(Signal.triggered_at.desc(), Signal.id.desc())
+    # Legacy scans wrote a row each hour even while nothing changed. Fetch a
+    # bounded history first, collapse those repetitions, then paginate the
+    # logical signal events. This keeps old records intact in the database.
+    signals = session.exec(stmt.limit(MAX_COMPACT_SOURCE_ROWS)).all()
+    signals = _collapse_legacy_continuous_signals(signals)
     if sort == "score_desc":
-        stmt = stmt.order_by(Signal.score.desc(), Signal.triggered_at.desc())
+        signals.sort(key=lambda signal: signal.score, reverse=True)
     elif sort == "score_asc":
-        stmt = stmt.order_by(Signal.score.asc(), Signal.triggered_at.desc())
-    else:
-        stmt = stmt.order_by(Signal.triggered_at.desc())
-    stmt = stmt.offset(bounded_offset).limit(bounded_limit)
-
-    signals = session.exec(stmt).all()
+        signals.sort(key=lambda signal: signal.score)
+    signals = signals[bounded_offset:bounded_offset + bounded_limit]
 
     # Batch-fetch every Symbol/Rule referenced by this page of signals up
     # front instead of one round-trip per row (was N+1: ~80+ individual

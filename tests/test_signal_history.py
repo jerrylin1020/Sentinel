@@ -51,3 +51,29 @@ def test_signal_history_can_filter_a_ticker_and_page_by_score():
 
         assert [(signal["ticker"], signal["score"]) for signal in first] == [("WLDUSDT", 3.8)]
         assert [(signal["ticker"], signal["score"]) for signal in second] == [("WLDUSDT", 0.8)]
+
+
+def test_signal_history_collapses_only_consecutive_legacy_states():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        symbol = Symbol(ticker="WLDUSDT", name="Worldcoin", asset_type=AssetType.crypto, exchange="BINANCE")
+        rule = Rule(id="long_green_candle", name="Long Green Candle", category=RuleCategory.technical)
+        session.add_all([symbol, rule])
+        session.commit()
+        session.refresh(symbol)
+        session.add_all([
+            Signal(symbol_id=symbol.id, rule_id=rule.id, severity=Severity.observe, score=0.8, score_components={rule.id: 0.8}, dedup_key="newest", triggered_at=datetime(2026, 7, 13, 3, tzinfo=timezone.utc)),
+            Signal(symbol_id=symbol.id, rule_id=rule.id, severity=Severity.observe, score=0.8, score_components={rule.id: 0.8}, dedup_key="same", triggered_at=datetime(2026, 7, 13, 2, tzinfo=timezone.utc)),
+            Signal(symbol_id=symbol.id, rule_id=rule.id, severity=Severity.p2, score=1.5, score_components={rule.id: 1.5}, dedup_key="changed", triggered_at=datetime(2026, 7, 13, 1, tzinfo=timezone.utc)),
+            Signal(symbol_id=symbol.id, rule_id=rule.id, severity=Severity.observe, score=0.8, score_components={rule.id: 0.8}, dedup_key="reappeared", triggered_at=datetime(2026, 7, 13, 0, tzinfo=timezone.utc)),
+        ])
+        session.commit()
+
+        signals = list_signals(ticker="WLDUSDT", session=session)
+
+        assert [(signal["severity"], signal["score"]) for signal in signals] == [
+            ("observe", 0.8),
+            ("p2", 1.5),
+            ("observe", 0.8),
+        ]
