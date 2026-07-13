@@ -45,8 +45,11 @@ def test_continuous_signal_keeps_one_latest_row_and_reappearance_creates_another
         assert len(signals) == 1
         assert signals[0].price_at_trigger == 0.427
         assert "7.5%" in signals[0].extra["long_green_candle"]["detail"]
+        assert signals[0].extra[scan_job.SCAN_ID_KEY]
 
     scan_job.run_scan()
     scan_job.run_scan()
     with Session(engine) as session:
-        assert len(session.exec(select(Signal)).all()) == 2
+        signals = session.exec(select(Signal)).all()
+        assert len(signals) == 2
+        assert signals[0].extra[scan_job.SCAN_ID_KEY] != signals[1].extra[scan_job.SCAN_ID_KEY]

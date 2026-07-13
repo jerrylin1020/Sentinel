@@ -12,6 +12,8 @@ two ways:
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 from sqlmodel import Session, select
 
 from apps.api.db import engine, init_db
@@ -24,11 +26,13 @@ from packages.scanner.deduper import dedup_key
 from packages.scanner.engine import scan_symbol
 
 CONTINUITY_ACTIVE_KEY = "_sentinel_continuity_active"
+SCAN_ID_KEY = "_sentinel_scan_id"
 
 
 def run_scan() -> list[dict]:
     """Run one scan pass over the whole watchlist. Returns a per-symbol summary."""
     init_db()
+    scan_id = str(uuid4())
     summary: list[dict] = []
 
     with Session(engine) as session:
@@ -43,7 +47,7 @@ def run_scan() -> list[dict]:
         watched = session.exec(select(WatchedSymbol)).all()
         for w in watched:
             sym = session.get(Symbol, w.symbol_id)
-            entry: dict = {"ticker": sym.ticker}
+            entry: dict = {"ticker": sym.ticker, "scan_id": scan_id}
 
             try:
                 # Fetch long history so long-term rules (e.g. 200-week MA,
@@ -111,6 +115,7 @@ def run_scan() -> list[dict]:
                 for h in result.hits
             }
             signal_extra[CONTINUITY_ACTIVE_KEY] = True
+            signal_extra[SCAN_ID_KEY] = scan_id
             primary = result.hits[0]
 
             if latest and latest.dedup_key == key and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
