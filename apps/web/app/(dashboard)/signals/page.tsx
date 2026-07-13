@@ -16,12 +16,12 @@ function taipeiDate(offsetDays = 0) {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
-function hrefFor({ severity, period, date, sort = "latest", page = 0 }: { severity?: Severity; period: "today" | "yesterday" | "5d" | "all" | "date"; date?: string; sort?: SignalSort; page?: number }) {
+function hrefFor({ severity, period, date, sort = "score_desc", page = 0 }: { severity?: Severity; period: "today" | "yesterday" | "5d" | "all" | "date"; date?: string; sort?: SignalSort; page?: number }) {
   const params = new URLSearchParams();
   if (severity) params.set("severity", severity);
-  if (period !== "today") params.set("period", period);
+  if (period !== "5d") params.set("period", period);
   if (date) params.set("date", date);
-  if (sort !== "latest") params.set("sort", sort);
+  if (sort !== "score_desc") params.set("sort", sort);
   if (page > 0) params.set("page", String(page));
   const query = params.toString();
   return `/signals${query ? `?${query}` : ""}`;
@@ -30,8 +30,8 @@ function hrefFor({ severity, period, date, sort = "latest", page = 0 }: { severi
 export default async function SignalsPage({ searchParams }: { searchParams: { severity?: string; view?: string; period?: string; date?: string; sort?: string; page?: string } }) {
   const severity = validSeverities.includes(searchParams.severity as Severity) ? (searchParams.severity as Severity) : undefined;
   const digest = searchParams.view === "digest";
-  const period = searchParams.period === "yesterday" || searchParams.period === "5d" || searchParams.period === "all" || searchParams.period === "date" ? searchParams.period : "today";
-  const sort: SignalSort = searchParams.sort === "score_desc" || searchParams.sort === "score_asc" ? searchParams.sort : "latest";
+  const period = searchParams.period === "today" || searchParams.period === "yesterday" || searchParams.period === "all" || searchParams.period === "date" ? searchParams.period : "5d";
+  const sort: SignalSort = searchParams.sort === "latest" || searchParams.sort === "score_asc" ? searchParams.sort : "score_desc";
   const page = Math.max(Number.parseInt(searchParams.page ?? "0", 10) || 0, 0);
   const pageSize = 100;
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? "") ? searchParams.date! : taipeiDate();
@@ -45,7 +45,7 @@ export default async function SignalsPage({ searchParams }: { searchParams: { se
   const title = digest ? "訊號摘要" : severity ? `${severity.toUpperCase()} 訊號` : "訊號";
 
   return <div>
-    <header className="page-heading"><div><h1>{title}</h1><p>{digest ? "今日所有觸發的彙整" : "所有規則、所有觸發 · 依時間排序"}</p></div><div className="flex gap-2"><button className="toolbar-button">匯出</button><Link className="toolbar-button toolbar-button-primary" href="/rules">規則設定</Link></div></header>
+    <header className="page-heading"><div><h1>{title}</h1><p>{digest ? "今日所有觸發的彙整" : "所有規則、所有觸發 · 依分數由高至低排序"}</p></div><div className="flex gap-2"><button className="toolbar-button">匯出</button><Link className="toolbar-button toolbar-button-primary" href="/rules">規則設定</Link></div></header>
     <div className="space-y-3 border-b border-border px-6 py-3">
       <div className="flex flex-wrap items-center gap-3"><span className="section-label">日期</span><Filter href={hrefFor({ severity, period: "today", sort })} active={period === "today"}>今日</Filter><Filter href={hrefFor({ severity, period: "yesterday", sort })} active={period === "yesterday"}>昨天</Filter><Filter href={hrefFor({ severity, period: "5d", sort })} active={period === "5d"}>近 5 天</Filter><Filter href={hrefFor({ severity, period: "all", sort })} active={period === "all"}>全部</Filter><form action="/signals" className="flex items-center gap-1"><input type="hidden" name="period" value="date" /><input type="hidden" name="sort" value={sort} />{severity && <input type="hidden" name="severity" value={severity} />}<input name="date" type="date" defaultValue={selectedDate} className="rounded border border-border-light bg-panel px-2 py-1 font-mono text-xs text-text" /><button className="rounded border border-border px-2 py-1 text-xs text-text-dim hover:text-text">查看日期</button></form><span className="ml-auto font-mono text-[11px] text-text-faint">{signals.length} signals</span></div>
       <div className="flex flex-wrap items-center gap-3"><span className="section-label">Severity</span><Filter href={hrefFor({ severity: undefined, period, date: period === "date" ? selectedDate : undefined, sort })} active={!severity}>All</Filter><Filter href={hrefFor({ severity: "p1", period, date: period === "date" ? selectedDate : undefined, sort })} active={severity === "p1"}>P1</Filter><Filter href={hrefFor({ severity: "p2", period, date: period === "date" ? selectedDate : undefined, sort })} active={severity === "p2"}>P2</Filter><Filter href={hrefFor({ severity: "observe", period, date: period === "date" ? selectedDate : undefined, sort })} active={severity === "observe"}>Observe</Filter><span className="ml-auto section-label">排序</span><Filter href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort: "latest" })} active={sort === "latest"}>最新</Filter><Filter href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort: "score_desc" })} active={sort === "score_desc"}>分數高</Filter><Filter href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort: "score_asc" })} active={sort === "score_asc"}>分數低</Filter></div>

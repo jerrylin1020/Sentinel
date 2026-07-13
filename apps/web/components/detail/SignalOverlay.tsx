@@ -5,7 +5,7 @@ import { CandleChart, type ChartMarker } from "@/components/charts/CandleChart";
 import { Panel, Tag } from "@/components/ui/Panel";
 import { categoryColor, type ApiSignal } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDateTime, fmtTaipeiDate } from "@/lib/format";
 
 const markerColor: Record<string, string> = { p1: "#ff3b58", p2: "#ffb627", observe: "#7a839a" };
 
@@ -71,7 +71,7 @@ export function SignalOverlay({
   const markers: ChartMarker[] = useMemo(
     () =>
       numbered.map(({ signal: s, index }) => ({
-        time: new Date(s.triggered_at).toISOString().slice(0, 10),
+        time: fmtTaipeiDate(s.triggered_at),
         position: "aboveBar" as const,
         color: markerColor[s.severity] ?? "#7a839a",
         shape: "circle" as const,

@@ -6,6 +6,26 @@ import type { ApiSignal } from "@/lib/api";
 import { severityColor } from "@/lib/fixtures";
 import { fmtDateTime } from "@/lib/format";
 
+const taipeiDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Taipei",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function taipeiCalendarDay(value: string | Date) {
+  const parts = taipeiDateFormatter.formatToParts(new Date(value));
+  const part = (type: string) => Number(parts.find((item) => item.type === type)?.value);
+  return Date.UTC(part("year"), part("month") - 1, part("day")) / 86_400_000;
+}
+
+function relativeDay(triggeredAt: string) {
+  const daysAgo = taipeiCalendarDay(new Date()) - taipeiCalendarDay(triggeredAt);
+  if (daysAgo <= 0) return { label: "今天", style: "border-cyan/40 bg-cyan/15 text-cyan" };
+  if (daysAgo === 1) return { label: "昨天", style: "border-amber/35 bg-amber/10 text-amber" };
+  return { label: `${daysAgo} 天前`, style: "border-border-light bg-panel-3 text-text-dim" };
+}
+
 export function SignalsList({ signals }: { signals: ApiSignal[] }) {
   const [tickerFilter, setTickerFilter] = useState("");
   const [assetFilter, setAssetFilter] = useState<"all" | "equity" | "crypto">("all");
@@ -41,6 +61,9 @@ export function SignalsList({ signals }: { signals: ApiSignal[] }) {
         </button>
       ))}
     </div>
-    {visibleSignals.length ? <div>{visibleSignals.map((s) => <Link key={s.id} href={`/detail/${s.ticker}#signal-${s.id}`} className="signal-row grid gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-panel sm:grid-cols-[76px_66px_88px_minmax(0,1fr)_64px] sm:items-center"><time className="font-mono text-[11px] text-text-faint">{fmtDateTime(s.triggered_at)}</time><span className={`h-fit w-fit rounded border px-1.5 py-0.5 font-mono text-[10px] font-bold ${severityColor[s.severity]}`}>{s.severity.toUpperCase()} · {s.score.toFixed(1)}</span><span><strong className="font-mono text-sm">{s.ticker}</strong><small className="ml-1 text-[11px] text-text-faint sm:ml-0 sm:block">{s.name}</small></span><span className="min-w-0 text-xs leading-5 text-text-dim"><strong className="font-medium text-cyan">{s.rules[0]?.name || "Signal"}</strong>{s.rules[0]?.detail ? ` · ${s.rules[0].detail}` : ""}</span><span className="font-mono text-right text-xs text-text">{s.price.toLocaleString()}</span></Link>)}</div> : <p className="py-12 text-center text-sm text-text-dim">找不到符合的訊號，請調整篩選條件。</p>}
+    {visibleSignals.length ? <div>{visibleSignals.map((s) => {
+      const age = relativeDay(s.triggered_at);
+      return <Link key={s.id} href={`/detail/${s.ticker}#signal-${s.id}`} className="signal-row grid gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-panel sm:grid-cols-[112px_66px_88px_minmax(0,1fr)_64px] sm:items-center"><time className="font-mono"><span className={`inline-flex rounded border px-2 py-0.5 text-xs font-semibold ${age.style}`}>{age.label}</span><span className="mt-1 block whitespace-nowrap text-[10px] text-text-faint">{fmtDateTime(s.triggered_at)}</span></time><span className={`h-fit w-fit rounded border px-1.5 py-0.5 font-mono text-[10px] font-bold ${severityColor[s.severity]}`}>{s.severity.toUpperCase()} · {s.score.toFixed(1)}</span><span><strong className="font-mono text-sm">{s.ticker}</strong><small className="ml-1 text-[11px] text-text-faint sm:ml-0 sm:block">{s.name}</small></span><span className="min-w-0 text-xs leading-5 text-text-dim"><strong className="font-medium text-cyan">{s.rules[0]?.name || "Signal"}</strong>{s.rules[0]?.detail ? ` · ${s.rules[0].detail}` : ""}</span><span className="font-mono text-right text-xs text-text">{s.price.toLocaleString()}</span></Link>;
+    })}</div> : <p className="py-12 text-center text-sm text-text-dim">找不到符合的訊號，請調整篩選條件。</p>}
   </div>;
 }
