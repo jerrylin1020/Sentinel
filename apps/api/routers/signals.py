@@ -68,7 +68,7 @@ def list_signals(
         end = datetime.combine(end_day + timedelta(days=1), time.min, TAIPEI).astimezone(timezone.utc)
         stmt = stmt.where(Signal.triggered_at >= start, Signal.triggered_at < end)
 
-    bounded_limit = min(max(limit, 1), 500)
+    bounded_limit = min(max(limit, 1), MAX_COMPACT_SOURCE_ROWS)
     bounded_offset = max(offset, 0)
     # Continuity has to be determined in chronological order before any
     # presentation sort is applied.

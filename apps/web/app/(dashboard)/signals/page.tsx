@@ -16,29 +16,26 @@ function taipeiDate(offsetDays = 0) {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
-function hrefFor({ severity, period, date, sort = "score_desc", page = 0 }: { severity?: Severity; period: "today" | "yesterday" | "5d" | "all" | "date"; date?: string; sort?: SignalSort; page?: number }) {
+function hrefFor({ severity, period, date, sort = "score_desc" }: { severity?: Severity; period: "today" | "yesterday" | "5d" | "all" | "date"; date?: string; sort?: SignalSort }) {
   const params = new URLSearchParams();
   if (severity) params.set("severity", severity);
   if (period !== "5d") params.set("period", period);
   if (date) params.set("date", date);
   if (sort !== "score_desc") params.set("sort", sort);
-  if (page > 0) params.set("page", String(page));
   const query = params.toString();
   return `/signals${query ? `?${query}` : ""}`;
 }
 
-export default async function SignalsPage({ searchParams }: { searchParams: { severity?: string; view?: string; period?: string; date?: string; sort?: string; page?: string } }) {
+export default async function SignalsPage({ searchParams }: { searchParams: { severity?: string; view?: string; period?: string; date?: string; sort?: string } }) {
   const severity = validSeverities.includes(searchParams.severity as Severity) ? (searchParams.severity as Severity) : undefined;
   const digest = searchParams.view === "digest";
   const period = searchParams.period === "today" || searchParams.period === "yesterday" || searchParams.period === "all" || searchParams.period === "date" ? searchParams.period : "5d";
   const sort: SignalSort = searchParams.sort === "latest" || searchParams.sort === "score_asc" ? searchParams.sort : "score_desc";
-  const page = Math.max(Number.parseInt(searchParams.page ?? "0", 10) || 0, 0);
-  const pageSize = 100;
+  const pageSize = 2_000;
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? "") ? searchParams.date! : taipeiDate();
   const signalOptions = {
     ...(period === "all" ? {} : period === "5d" ? { signalDate: taipeiDate(), days: 5 } : { signalDate: period === "yesterday" ? taipeiDate(1) : selectedDate }),
     limit: pageSize,
-    offset: page * pageSize,
     sort,
   };
   const signals = await getSignals(severity, signalOptions);
@@ -51,7 +48,7 @@ export default async function SignalsPage({ searchParams }: { searchParams: { se
       <div className="flex flex-wrap items-center gap-3"><span className="section-label">Severity</span><Filter href={hrefFor({ severity: undefined, period, date: period === "date" ? selectedDate : undefined, sort })} active={!severity}>All</Filter><Filter href={hrefFor({ severity: "p1", period, date: period === "date" ? selectedDate : undefined, sort })} active={severity === "p1"}>P1</Filter><Filter href={hrefFor({ severity: "p2", period, date: period === "date" ? selectedDate : undefined, sort })} active={severity === "p2"}>P2</Filter><Filter href={hrefFor({ severity: "observe", period, date: period === "date" ? selectedDate : undefined, sort })} active={severity === "observe"}>Observe</Filter><span className="ml-auto section-label">排序</span><Filter href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort: "latest" })} active={sort === "latest"}>最新</Filter><Filter href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort: "score_desc" })} active={sort === "score_desc"}>分數高</Filter><Filter href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort: "score_asc" })} active={sort === "score_asc"}>分數低</Filter></div>
     </div>
     <section className="mx-6 mt-5 rounded-lg border border-border bg-panel p-4"><div className="flex flex-wrap items-baseline justify-between gap-2"><h2 className="section-label text-text">訊號分級說明</h2><Link href="/watchlist" className="text-xs text-cyan">調整個別標的 P1 門檻 →</Link></div><div className="mt-3 grid gap-3 text-xs leading-5 text-text-dim md:grid-cols-3"><p><strong className="text-p1">P1 高信心</strong><br />分數達此標的 P1 門檻，且至少 3 條規則同時觸發。</p><p><strong className="text-p2">P2 中信心</strong><br />未達 P1，但至少有一條底層規則的等級是 P1 或 P2。</p><p><strong className="text-text">Observe 觀察</strong><br />其餘觸發只記錄、不推播。系統目前沒有 P3。</p></div></section>
-    <section className="px-4 py-5 sm:px-6"><div className="mb-2 flex justify-between"><h2 className="text-sm font-semibold">{digest ? "今日訊號摘要" : period === "5d" ? "近 5 天訊號" : period === "all" ? "所有歷史訊號" : "訊號列表"}</h2><span className="font-mono text-[11px] text-text-faint">本頁 {signals.length} 則</span></div><SignalsList signals={signals} /><div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs"><span className="font-mono text-text-faint">第 {page + 1} 頁</span>{page > 0 ? <Link href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort, page: page - 1 })} className="rounded border border-border px-2.5 py-1.5 text-text-dim hover:text-text">← 上一頁</Link> : <span />}{signals.length === pageSize ? <Link href={hrefFor({ severity, period, date: period === "date" ? selectedDate : undefined, sort, page: page + 1 })} className="rounded border border-border px-2.5 py-1.5 text-text-dim hover:text-text">下一頁 →</Link> : <span />}</div></section>
+    <section className="px-4 py-5 sm:px-6"><div className="mb-2 flex justify-between"><h2 className="text-sm font-semibold">{digest ? "今日訊號摘要" : period === "5d" ? "近 5 天訊號" : period === "all" ? "所有歷史訊號" : "訊號列表"}</h2><span className="font-mono text-[11px] text-text-faint">已載入 {signals.length} 則</span></div><SignalsList signals={signals} /></section>
   </div>;
 }
 

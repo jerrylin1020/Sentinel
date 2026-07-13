@@ -12,7 +12,7 @@ const tabs = [
   { href: "/rules", label: "Rules", icon: "rules" },
 ];
 
-export function NavBar() {
+export function NavBar({ counts }: { counts?: { signals: number; watchlist: number; p1Today: number } }) {
   const pathname = usePathname();
   return (
     <aside className="app-rail flex border-b border-border bg-bg p-3 lg:flex-col lg:gap-5 lg:border-b-0 lg:border-r lg:px-3.5 lg:py-[18px]">
@@ -28,12 +28,12 @@ export function NavBar() {
           {tabs.map((t) => {
             const active = t.href === "/" ? pathname === "/" : pathname.startsWith(t.href.split("/").slice(0, 2).join("/"));
             return <Link key={t.href} href={t.href} className={`rail-link ${active ? "rail-link-active" : ""}`}>
-              <NavIcon name={t.icon} /><span>{t.label}</span>{t.href === "/signals" && <span className="rail-count">12</span>}{t.href === "/watchlist" && <span className="rail-count">45</span>}
+              <NavIcon name={t.icon} /><span>{t.label}</span>{t.href === "/signals" && counts && <span title="近 5 天訊號" className="rail-count">{counts.signals}</span>}{t.href === "/watchlist" && counts && <span title="目前觀察名單標的" className="rail-count">{counts.watchlist}</span>}
             </Link>;
           })}
           <div className="rail-extra">
             <p className="section-label mb-1 px-2.5 pt-5">Alerts</p>
-            <Link href="/signals?severity=p1" className="rail-link"><BellIcon /><span>P1 today</span><span className="rail-count bg-p1/10 text-p1">P1</span></Link>
+            <Link href="/signals?severity=p1&period=today" className="rail-link"><BellIcon /><span>P1 today</span>{counts && <span title="今日 P1 訊號" className="rail-count bg-p1/10 text-p1">{counts.p1Today}</span>}</Link>
             <Link href="/signals?view=digest" className="rail-link"><CalendarIcon /><span>Digest</span></Link>
           </div>
         </div>
