@@ -84,6 +84,11 @@ export interface ApiSignal {
   status: string;
   components: Record<string, number>;
   metrics: Record<string, Record<string, number>>;
+  continuity?: {
+    active: boolean;
+    first_seen_at: string;
+    scan_count: number;
+  };
 }
 
 export interface ApiBacktest {

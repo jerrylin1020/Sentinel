@@ -149,12 +149,47 @@ export function SignalOverlay({
                     </li>
                   ))}
                 </ul>
+                <SignalStatusSummary signal={s} />
                 <ScoreBreakdown signal={s} p1Threshold={p1Threshold} />
               </li>
             ))}
           </ul>
         )}
       </Panel>
+    </div>
+  );
+}
+
+function formatDuration(firstSeenAt: string, lastUpdatedAt: string) {
+  const elapsedMinutes = Math.max(0, Math.floor((new Date(lastUpdatedAt).getTime() - new Date(firstSeenAt).getTime()) / 60_000));
+  const days = Math.floor(elapsedMinutes / 1_440);
+  const hours = Math.floor((elapsedMinutes % 1_440) / 60);
+  const minutes = elapsedMinutes % 60;
+  if (days) return `${days} 天 ${hours} 小時`;
+  if (hours) return `${hours} 小時 ${minutes} 分`;
+  return `${minutes} 分`;
+}
+
+function SignalStatusSummary({ signal }: { signal: ApiSignal }) {
+  const continuity = signal.continuity;
+  const firstSeenAt = continuity?.first_seen_at ?? signal.triggered_at;
+  const scanCount = continuity?.scan_count ?? 1;
+  const active = continuity?.active ?? false;
+
+  return (
+    <div className="mt-2 rounded border border-border bg-bg/50 px-2.5 py-2 text-[10px]">
+      <p className="mb-1.5 font-semibold text-text">狀態摘要</p>
+      <div className="flex flex-wrap items-center gap-1.5 text-text-dim">
+        <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-semibold ${active ? "border-cyan/40 bg-cyan/10 text-cyan" : "border-border-light bg-panel-3 text-text-dim"}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-cyan" : "bg-text-faint"}`} />
+          {active ? "持續中" : "歷史訊號"}
+        </span>
+        <span className="rounded border border-border px-1.5 py-0.5">首次 {fmtDateTime(firstSeenAt)}</span>
+        <span className="rounded border border-border px-1.5 py-0.5">更新 {fmtDateTime(signal.triggered_at)}</span>
+        <span className="rounded border border-border px-1.5 py-0.5">持續 {formatDuration(firstSeenAt, signal.triggered_at)}</span>
+        <span className="rounded border border-border px-1.5 py-0.5">掃描 {scanCount} 次</span>
+      </div>
+      <p className="mt-1.5 text-text-faint">{active ? "規則狀態未變，系統已合併為同一則訊號。" : "此狀態已結束，保留為歷史訊號。"}</p>
     </div>
   );
 }

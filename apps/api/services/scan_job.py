@@ -27,12 +27,15 @@ from packages.scanner.engine import scan_symbol
 
 CONTINUITY_ACTIVE_KEY = "_sentinel_continuity_active"
 SCAN_ID_KEY = "_sentinel_scan_id"
+CONTINUITY_FIRST_SEEN_AT_KEY = "_sentinel_continuity_first_seen_at"
+CONTINUITY_SCAN_COUNT_KEY = "_sentinel_continuity_scan_count"
 
 
 def run_scan() -> list[dict]:
     """Run one scan pass over the whole watchlist. Returns a per-symbol summary."""
     init_db()
     scan_id = str(uuid4())
+    scanned_at = utcnow()
     summary: list[dict] = []
 
     with Session(engine) as session:
@@ -119,7 +122,14 @@ def run_scan() -> list[dict]:
             primary = result.hits[0]
 
             if latest and latest.dedup_key == key and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
-                latest.triggered_at = utcnow()
+                previous_extra = latest.extra or {}
+                signal_extra[CONTINUITY_FIRST_SEEN_AT_KEY] = previous_extra.get(
+                    CONTINUITY_FIRST_SEEN_AT_KEY, latest.triggered_at.isoformat()
+                )
+                signal_extra[CONTINUITY_SCAN_COUNT_KEY] = int(
+                    previous_extra.get(CONTINUITY_SCAN_COUNT_KEY, 1)
+                ) + 1
+                latest.triggered_at = scanned_at
                 latest.score = result.score.score
                 latest.score_components = result.score.components
                 latest.price_at_trigger = primary.metrics.get("price", 0.0)
@@ -151,8 +161,13 @@ def run_scan() -> list[dict]:
                 volume_multiplier=primary.metrics.get("volume_multiplier", 0.0),
                 # Keep the human-readable "why" alongside raw metrics, while the
                 # private continuity flag lets a reappearing signal start a new row.
-                extra=signal_extra,
+                extra={
+                    **signal_extra,
+                    CONTINUITY_FIRST_SEEN_AT_KEY: scanned_at.isoformat(),
+                    CONTINUITY_SCAN_COUNT_KEY: 1,
+                },
                 dedup_key=key,
+                triggered_at=scanned_at,
             )
             session.add(signal)
             session.commit()

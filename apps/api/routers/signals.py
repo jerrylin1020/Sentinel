@@ -12,6 +12,9 @@ from packages.scanner.rules import registry
 router = APIRouter(prefix="/signals", tags=["signals"])
 TAIPEI = ZoneInfo("Asia/Taipei")
 MAX_COMPACT_SOURCE_ROWS = 2_000
+CONTINUITY_ACTIVE_KEY = "_sentinel_continuity_active"
+CONTINUITY_FIRST_SEEN_AT_KEY = "_sentinel_continuity_first_seen_at"
+CONTINUITY_SCAN_COUNT_KEY = "_sentinel_continuity_scan_count"
 
 
 def _signal_state_key(signal: Signal) -> tuple:
@@ -146,6 +149,11 @@ def list_signals(
                 "status": sig.status.value,
                 "components": sig.score_components,
                 "metrics": sig.extra,
+                "continuity": {
+                    "active": bool(extra.get(CONTINUITY_ACTIVE_KEY)),
+                    "first_seen_at": extra.get(CONTINUITY_FIRST_SEEN_AT_KEY) or sig.triggered_at,
+                    "scan_count": int(extra.get(CONTINUITY_SCAN_COUNT_KEY, 1)),
+                },
             }
         )
     return out
