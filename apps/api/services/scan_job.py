@@ -17,7 +17,7 @@ from uuid import uuid4
 from sqlmodel import Session, select
 
 from apps.api.db import engine, init_db
-from apps.api.models import Rule, Severity, Signal, Symbol, WatchedSymbol, utcnow
+from apps.api.models import ScanRun, Rule, Severity, Signal, Symbol, WatchedSymbol, utcnow
 from apps.api.services.seed import seed_all
 from packages.data.crypto.binance import fetch_klines, fetch_funding_rate
 from packages.data.equity.yahoo import fetch_candles
@@ -40,6 +40,9 @@ def run_scan() -> list[dict]:
 
     with Session(engine) as session:
         seed_all(session)
+        run = ScanRun(started_at=scanned_at)
+        session.add(run)
+        session.commit()
 
         # Globally disabled rules (e.g. pruned by backtest) are excluded from
         # every scan, regardless of a symbol's enabled_rules list.
@@ -48,6 +51,7 @@ def run_scan() -> list[dict]:
         rule_weights = {r.id: r.weight for r in configured_rules}
 
         watched = session.exec(select(WatchedSymbol)).all()
+        errors: list[str] = []
         for w in watched:
             sym = session.get(Symbol, w.symbol_id)
             entry: dict = {"ticker": sym.ticker, "scan_id": scan_id}
@@ -61,6 +65,7 @@ def run_scan() -> list[dict]:
                     candles = fetch_candles(sym.ticker, rng="5y", interval="1d")
             except Exception as exc:
                 entry["error"] = f"data fetch failed: {exc}"
+                errors.append(f"{sym.ticker}: {entry['error']}")
                 summary.append(entry)
                 continue
 
@@ -74,16 +79,22 @@ def run_scan() -> list[dict]:
                     pass
 
             active_rules = [r for r in (w.enabled_rules or []) if r not in disabled]
-            result = scan_symbol(
-                sym.ticker,
-                sym.asset_type.value,
-                candles,
-                enabled_rules=active_rules or None,
-                params_overrides={"volume_spike_2x": {"multiplier": w.volume_multiplier}},
-                p1_min_score=w.p1_score_threshold,
-                funding_rates=funding_rates,
-                rule_weights=rule_weights,
-            )
+            try:
+                result = scan_symbol(
+                    sym.ticker,
+                    sym.asset_type.value,
+                    candles,
+                    enabled_rules=active_rules or None,
+                    params_overrides={"volume_spike_2x": {"multiplier": w.volume_multiplier}},
+                    p1_min_score=w.p1_score_threshold,
+                    funding_rates=funding_rates,
+                    rule_weights=rule_weights,
+                )
+            except Exception as exc:
+                entry["error"] = f"rule scan failed: {exc}"
+                errors.append(f"{sym.ticker}: {entry['error']}")
+                summary.append(entry)
+                continue
 
             latest = session.exec(
                 select(Signal)
@@ -190,5 +201,14 @@ def run_scan() -> list[dict]:
             entry["score"] = result.score.score
             entry["detail"] = detail
             summary.append(entry)
+
+        run.finished_at = utcnow()
+        run.scanned_symbols = len(watched)
+        run.matched_symbols = sum(1 for entry in summary if "signal_id" in entry)
+        run.failed_symbols = len(errors)
+        run.errors = errors[:5]
+        run.status = "partial" if errors else "succeeded"
+        session.add(run)
+        session.commit()
 
     return summary

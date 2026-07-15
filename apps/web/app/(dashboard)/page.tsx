@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { DashboardHeaderActions } from "@/components/dashboard/DashboardHeaderActions";
-import { getSignals, getWatchlist, type ApiSignal, type Severity } from "@/lib/api";
-import { fmtHourMinute } from "@/lib/format";
+import { getLatestScanRun, getSignals, getWatchlist, type ApiScanRun, type ApiSignal, type Severity } from "@/lib/api";
+import { fmtDateTime, fmtHourMinute } from "@/lib/format";
 
 function taipeiDate(offsetDays = 0) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -49,7 +49,11 @@ function groupByTicker(signals: ApiSignal[]): SignalGroup[] {
 }
 
 export default async function DashboardPage() {
-  const [signals, watchlist] = await Promise.all([getSignals(undefined, { signalDate: taipeiDate() }), getWatchlist()]);
+  const [signals, watchlist, latestScanRun] = await Promise.all([
+    getSignals(undefined, { signalDate: taipeiDate() }),
+    getWatchlist(),
+    getLatestScanRun(),
+  ]);
   const watchedTickers = new Set(watchlist.map((item) => item.symbol.ticker));
   const activeSignals = signals.filter((signal) => watchedTickers.has(signal.ticker));
   // Split into severity tiers so the dashboard can dedicate a section to each
@@ -68,8 +72,10 @@ export default async function DashboardPage() {
   return <div>
     <header className="page-heading">
       <div><h1>儀表板</h1><p>目前觀察名單的最新異常與規則觸發</p></div>
-      <div className="flex items-center gap-2"><DashboardHeaderActions /><Link href="/rules" className="toolbar-button toolbar-button-primary">告警設定</Link></div>
+      <div className="flex items-center gap-2"><DashboardHeaderActions /><Link href="/rules" className="toolbar-button toolbar-button-primary">規則設定</Link></div>
     </header>
+
+    <ScanHealth run={latestScanRun} />
 
     <section className="grid gap-px border-b border-border bg-border sm:grid-cols-2 xl:grid-cols-4">
       <Stat label="今日 P1" value={p1.length} detail="高信心觸發" accent="text-p1" />
@@ -95,6 +101,31 @@ export default async function DashboardPage() {
       </PrioritySection>
     </div> : <EmptyDashboard />}
   </div>;
+}
+
+function ScanHealth({ run }: { run: ApiScanRun | null }) {
+  if (!run) {
+    return <section className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border bg-panel px-6 py-3 text-[13px] text-text-dim">
+      <span className="inline-flex items-center gap-2 font-semibold text-text"><i className="h-2 w-2 rounded-full bg-text-faint" />尚未有掃描紀錄</span>
+      <span>下一輪掃描完成後，會在此顯示實際狀態。</span>
+    </section>;
+  }
+
+  const completedAt = run.finished_at ?? run.started_at;
+  const isRunning = run.status === "running";
+  const isPartial = run.status === "partial";
+  const nextScanMinutes = Math.max(0, Math.ceil(((new Date(completedAt).getTime() + 5 * 60_000) - Date.now()) / 60_000));
+  const statusClass = isRunning ? "bg-cyan" : isPartial ? "bg-p2" : "bg-up";
+  const statusLabel = isRunning ? "掃描進行中" : isPartial ? "部分完成" : "掃描正常";
+
+  return <section className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border bg-panel px-6 py-3 text-[13px] text-text-dim">
+    <span className="inline-flex items-center gap-2 font-semibold text-text"><i className={`h-2 w-2 rounded-full ${statusClass}`} />{statusLabel}</span>
+    <span>最後{isRunning ? "開始" : "成功"}掃描 <b className="font-mono font-medium text-text">{fmtDateTime(completedAt)}</b></span>
+    <span>掃描 <b className="font-mono font-medium text-text">{run.scanned_symbols} / {run.scanned_symbols}</b> 標的</span>
+    <span>命中 <b className="font-mono font-medium text-text">{run.matched_symbols}</b> 則訊號</span>
+    {run.failed_symbols > 0 && <span title={run.errors.join("\n")}>失敗 <b className="font-mono font-medium text-p2">{run.failed_symbols}</b> 個標的</span>}
+    {!isRunning && <span>下次掃描 約 <b className="font-mono font-medium text-text">{nextScanMinutes}</b> 分鐘後</span>}
+  </section>;
 }
 
 function PrioritySection({ severity, count, tickerCount, viewAllHref, children }: { severity: Severity; count: number; tickerCount?: number; viewAllHref?: string; children: React.ReactNode }) {

@@ -128,6 +128,16 @@ export interface ApiWatched {
   };
 }
 
+export interface ApiScanRun {
+  started_at: string;
+  finished_at: string | null;
+  status: "succeeded" | "partial" | "running";
+  scanned_symbols: number;
+  matched_symbols: number;
+  failed_symbols: number;
+  errors: string[];
+}
+
 export interface ApiSymbolSuggestion {
   ticker: string;
   name: string;
@@ -163,6 +173,7 @@ export const getSignals = (severity?: Severity, options?: {
 };
 export const getRules = () => get<ApiRule[]>("/rules").then((d) => d ?? []);
 export const getWatchlist = () => get<ApiWatched[]>("/watchlist").then((d) => d ?? []);
+export const getLatestScanRun = () => get<ApiScanRun | null>("/scan-runs/latest").then((d) => d ?? null);
 
 // Map rule categories to the tag color classes defined in fixtures.
 export const categoryColor: Record<string, string> = {

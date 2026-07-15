@@ -55,12 +55,11 @@ def list_signals(
 ):
     stmt = select(Signal)
     if ticker:
-        symbol = session.exec(
-            select(Symbol).where(func.upper(Symbol.ticker) == ticker.upper())
-        ).first()
-        if symbol is None:
-            return []
-        stmt = stmt.where(Signal.symbol_id == symbol.id)
+        # Older watchlist imports can contain duplicate Symbol rows for the
+        # same ticker. Filter through Symbol instead of choosing the first row,
+        # otherwise historical signals attached to a later duplicate disappear
+        # from Detail even though they remain visible in the full list.
+        stmt = stmt.join(Symbol).where(func.upper(Symbol.ticker) == ticker.upper())
     if severity is not None:
         stmt = stmt.where(Signal.severity == severity)
     if signal_date or days:

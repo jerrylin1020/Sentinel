@@ -53,6 +53,31 @@ def test_signal_history_can_filter_a_ticker_and_page_by_score():
         assert [(signal["ticker"], signal["score"]) for signal in second] == [("WLDUSDT", 0.8)]
 
 
+def test_signal_history_ticker_filter_includes_duplicate_symbol_rows():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        first = Symbol(ticker="RKLB", name="Rocket Lab", asset_type=AssetType.equity, exchange="NASDAQ")
+        second = Symbol(ticker="RKLB", name="Rocket Lab Corporation", asset_type=AssetType.equity, exchange="NASDAQ")
+        rule = Rule(id="gap_up", name="Gap Up", category=RuleCategory.technical)
+        session.add_all([first, second, rule])
+        session.commit()
+        session.refresh(second)
+        session.add(Signal(
+            symbol_id=second.id,
+            rule_id=rule.id,
+            severity=Severity.p2,
+            score=5.6,
+            dedup_key="rklb-history",
+            triggered_at=datetime(2026, 7, 14, tzinfo=timezone.utc),
+        ))
+        session.commit()
+
+        signals = list_signals(ticker="RKLB", session=session)
+
+    assert [(signal["ticker"], signal["score"]) for signal in signals] == [("RKLB", 5.6)]
+
+
 def test_signal_history_collapses_only_consecutive_legacy_states():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     SQLModel.metadata.create_all(engine)

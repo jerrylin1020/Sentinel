@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from apps.api.models import AssetType, Rule, RuleCategory, Signal, Symbol, WatchedSymbol
+from apps.api.models import AssetType, Rule, RuleCategory, ScanRun, Signal, Symbol, WatchedSymbol
 from apps.api.services import scan_job
 from packages.scanner.engine import ScanResult
 from packages.scanner.scorer import ScoreResult
@@ -42,7 +42,12 @@ def test_continuous_signal_keeps_one_latest_row_and_reappearance_creates_another
     scan_job.run_scan()
     with Session(engine) as session:
         signals = session.exec(select(Signal)).all()
+        scan_runs = session.exec(select(ScanRun).order_by(ScanRun.id)).all()
         assert len(signals) == 1
+        assert len(scan_runs) == 2
+        assert all(run.status == "succeeded" for run in scan_runs)
+        assert scan_runs[-1].scanned_symbols == 1
+        assert scan_runs[-1].matched_symbols == 1
         assert signals[0].price_at_trigger == 0.427
         assert "7.5%" in signals[0].extra["long_green_candle"]["detail"]
         assert signals[0].extra[scan_job.SCAN_ID_KEY]
@@ -53,6 +58,9 @@ def test_continuous_signal_keeps_one_latest_row_and_reappearance_creates_another
     scan_job.run_scan()
     with Session(engine) as session:
         signals = session.exec(select(Signal)).all()
+        scan_runs = session.exec(select(ScanRun).order_by(ScanRun.id)).all()
         assert len(signals) == 2
+        assert len(scan_runs) == 4
+        assert scan_runs[-1].matched_symbols == 1
         assert signals[0].extra[scan_job.SCAN_ID_KEY] != signals[1].extra[scan_job.SCAN_ID_KEY]
         assert signals[1].extra[scan_job.CONTINUITY_SCAN_COUNT_KEY] == 1

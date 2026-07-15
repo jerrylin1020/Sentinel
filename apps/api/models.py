@@ -47,6 +47,25 @@ class SignalStatus(str, Enum):
     dismissed = "dismissed"
 
 
+class ScanRun(SQLModel, table=True):
+    """One execution of the scheduled market scan."""
+
+    __tablename__ = "scan_run"
+
+    id: int | None = Field(default=None, primary_key=True)
+    started_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(DateTime(timezone=True), index=True)
+    )
+    finished_at: datetime | None = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), nullable=True)
+    )
+    status: str = "running"
+    scanned_symbols: int = 0
+    matched_symbols: int = 0
+    failed_symbols: int = 0
+    errors: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+
+
 # --- Watchlist ---------------------------------------------------------------
 
 

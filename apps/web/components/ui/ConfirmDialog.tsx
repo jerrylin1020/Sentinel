@@ -7,6 +7,7 @@ type ConfirmDialogProps = {
   title: string;
   description: string;
   confirmLabel: string;
+  confirmTone?: "danger" | "primary";
   pending?: boolean;
   pendingTitle?: string;
   pendingDescription?: string;
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  confirmTone = "danger",
   pending = false,
   pendingTitle,
   pendingDescription,
@@ -54,7 +56,7 @@ export function ConfirmDialog({
           <button ref={cancelRef} type="button" disabled={pending} onClick={onCancel} className="rounded-md border border-border-light px-3.5 py-2 text-sm text-text-dim transition-colors hover:bg-panel-2 hover:text-text disabled:opacity-50">
             取消
           </button>
-          <button type="button" disabled={pending} onClick={onConfirm} className="rounded-md border border-down/50 bg-down/10 px-3.5 py-2 text-sm font-semibold text-down transition-colors hover:bg-down/20 disabled:opacity-50">
+          <button type="button" disabled={pending} onClick={onConfirm} className={`rounded-md border px-3.5 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ${confirmTone === "danger" ? "border-down/50 bg-down/10 text-down hover:bg-down/20" : "border-cyan/50 bg-cyan/10 text-cyan hover:bg-cyan/20"}`}>
             {pending ? "處理中…" : confirmLabel}
           </button>
         </div>

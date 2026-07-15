@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from apps.api.config import settings
 from apps.api.db import engine, init_db
-from apps.api.routers import candles, cron, rules, signals, watchlist
+from apps.api.routers import candles, cron, rules, scan_runs, signals, watchlist
 from apps.api.services.seed import seed_all
 
 
@@ -41,7 +41,7 @@ async def cache_public_reads(request: Request, call_next):
     # Watchlist is intentionally excluded: mutations are immediately reflected
     # through the Next.js tagged cache, while a second Vercel edge cache here
     # can replay deleted rows after a successful DELETE.
-    cacheable = path in {"/signals", "/rules", "/health"} or path.startswith("/candles/")
+    cacheable = path in {"/signals", "/rules", "/health", "/scan-runs/latest"} or path.startswith("/candles/")
     if request.method == "GET" and response.status_code == 200 and cacheable:
         ttl = 30
         response.headers["Cache-Control"] = f"public, s-maxage={ttl}, stale-while-revalidate={ttl * 4}"
@@ -51,6 +51,7 @@ app.include_router(watchlist.router)
 app.include_router(rules.router)
 app.include_router(signals.router)
 app.include_router(candles.router)
+app.include_router(scan_runs.router)
 app.include_router(cron.router)
 
 
