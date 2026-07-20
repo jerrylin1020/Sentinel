@@ -50,50 +50,66 @@ def run_scan() -> list[dict]:
         disabled = {r.id for r in configured_rules if not r.enabled}
         rule_weights = {r.id: r.weight for r in configured_rules}
 
-        # Fetch benchmark candles once per scan pass
-        gspc_candles = []
-        btcusdt_candles = []
+        watched = session.exec(select(WatchedSymbol)).all()
+        symbols_map = {}
+        for w in watched:
+            sym = session.get(Symbol, w.symbol_id)
+            if sym:
+                symbols_map[w.id] = (sym, w)
+
+        # Build list of fetching tasks: (task_type, key, function, args, kwargs)
+        tasks = []
+        # Global benchmarks
+        tasks.append(("bench", "equity", fetch_candles, ("^GSPC",), {"rng": "5y", "interval": "1d"}))
+        tasks.append(("bench", "crypto", fetch_klines, ("BTCUSDT",), {"interval": "1d", "limit": 1000}))
+
+        # Watchlist
+        for w_id, (sym, w) in symbols_map.items():
+            if sym.asset_type.value == "crypto":
+                tasks.append(("candles", sym.ticker, fetch_klines, (sym.ticker,), {"interval": "1d", "limit": 1000}))
+                tasks.append(("funding", sym.ticker, fetch_funding_rate, (sym.ticker,), {"limit": 100}))
+            else:
+                tasks.append(("candles", sym.ticker, fetch_candles, (sym.ticker,), {"rng": "5y", "interval": "1d"}))
+
+        # Execute tasks in parallel using a thread pool
+        from concurrent.futures import ThreadPoolExecutor
+
+        results = {}
         errors: list[str] = []
-        try:
-            gspc_candles = fetch_candles("^GSPC", rng="5y", interval="1d")
-        except Exception as exc:
-            errors.append(f"global benchmark ^GSPC fetch failed: {exc}")
-        try:
-            btcusdt_candles = fetch_klines("BTCUSDT", interval="1d", limit=1000)
-        except Exception as exc:
-            errors.append(f"global benchmark BTCUSDT fetch failed: {exc}")
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_task = {}
+            for t_type, t_key, func, args, kwargs in tasks:
+                future = executor.submit(func, *args, **kwargs)
+                future_to_task[future] = (t_type, t_key)
+
+            for future in future_to_task:
+                t_type, t_key = future_to_task[future]
+                try:
+                    results[(t_type, t_key)] = future.result()
+                except Exception as exc:
+                    errors.append(f"Fetch failed for {t_type} {t_key}: {exc}")
+                    results[(t_type, t_key)] = None
+
+        gspc_candles = results.get(("bench", "equity")) or []
+        btcusdt_candles = results.get(("bench", "crypto")) or []
 
         benchmarks = {
             "equity": gspc_candles,
             "crypto": btcusdt_candles,
         }
 
-        watched = session.exec(select(WatchedSymbol)).all()
-        for w in watched:
-            sym = session.get(Symbol, w.symbol_id)
+        for w_id, (sym, w) in symbols_map.items():
             entry: dict = {"ticker": sym.ticker, "scan_id": scan_id}
 
-            try:
-                # Fetch long history so long-term rules (e.g. 200-week MA,
-                # 52-week breakout) have enough lookback.
-                if sym.asset_type.value == "crypto":
-                    candles = fetch_klines(sym.ticker, interval="1d", limit=1000)
-                else:  # equity via Yahoo Finance
-                    candles = fetch_candles(sym.ticker, rng="5y", interval="1d")
-            except Exception as exc:
-                entry["error"] = f"data fetch failed: {exc}"
+            candles = results.get(("candles", sym.ticker))
+            if not candles:
+                entry["error"] = "data fetch failed or returned no candles"
                 errors.append(f"{sym.ticker}: {entry['error']}")
                 summary.append(entry)
                 continue
 
-            # Funding rate only exists for crypto perpetuals; best-effort since
-            # not every symbol has a perpetual contract (e.g. spot-only pairs).
-            funding_rates = None
-            if sym.asset_type.value == "crypto":
-                try:
-                    funding_rates = fetch_funding_rate(sym.ticker, limit=100)
-                except Exception:
-                    pass
+            funding_rates = results.get(("funding", sym.ticker))
 
             active_rules = [r for r in (w.enabled_rules or []) if r not in disabled]
             try:
