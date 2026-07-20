@@ -13,5 +13,8 @@ from packages.scanner.rules.price_momentum import price_momentum  # noqa: F401
 from packages.scanner.rules.rsi_reversal import rsi_reversal  # noqa: F401
 from packages.scanner.rules.stochastic_reversal import stochastic_reversal  # noqa: F401
 from packages.scanner.rules.volume_spike import volume_spike  # noqa: F401
+from packages.scanner.rules.mansfield_rs import mansfield_rs  # noqa: F401
+from packages.scanner.rules.vcp_contraction import vcp_contraction  # noqa: F401
+from packages.scanner.rules.adaptive_ttm_squeeze import adaptive_ttm_squeeze  # noqa: F401
 
 __all__ = ["RuleSpec", "registry"]

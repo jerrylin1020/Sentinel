@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import math
+from statistics import median, pstdev
+
+from packages.shared.types import Candle
+
 
 def ema(values: list[float], period: int) -> list[float]:
     if not values:
@@ -62,3 +67,85 @@ def stochastic_k(highs: list[float], lows: list[float], closes: list[float], per
         else:
             out.append(100 * (closes[i] - window_low) / span)
     return out
+
+
+def historical_volatility(closes: list[float], period: int = 20) -> list[float]:
+    """Calculate annualized historical volatility over trailing `period`.
+    Uses log returns. Aligned to the end of `closes` (length = len(closes) - period)."""
+    n = len(closes)
+    if n < period + 1:
+        return []
+
+    log_returns: list[float] = []
+    for i in range(1, n):
+        if closes[i - 1] > 0 and closes[i] > 0:
+            log_returns.append(math.log(closes[i] / closes[i - 1]))
+        else:
+            log_returns.append(0.0)
+
+    out: list[float] = []
+    for i in range(period - 1, len(log_returns)):
+        window = log_returns[i - period + 1 : i + 1]
+        sd = pstdev(window)
+        out.append(sd * math.sqrt(252))
+    return out
+
+
+def atr(candles: list[Candle], period: int = 14, trim_outliers: bool = True) -> list[float]:
+    """Return the Average True Range (ATR) series, aligned to the end.
+    Length = len(candles) - period.
+    TR = max(high - low, |high - close_prev|, |low - close_prev|)."""
+    n = len(candles)
+    if n < period + 1:
+        return []
+
+    tr_list: list[float] = []
+    for i in range(1, n):
+        c = candles[i]
+        prev = candles[i - 1]
+        tr = max(
+            c.high - c.low,
+            abs(c.high - prev.close),
+            abs(c.low - prev.close),
+        )
+        tr_list.append(tr)
+
+    if trim_outliers and len(tr_list) > 20:
+        med = median(tr_list)
+        sd = pstdev(tr_list)
+        cap = med + 2.5 * sd
+        tr_list = [min(tr, cap) for tr in tr_list]
+
+    out: list[float] = []
+    current_atr = sum(tr_list[:period]) / period
+    out.append(current_atr)
+
+    alpha = 1.0 / period
+    for tr in tr_list[period:]:
+        current_atr = alpha * tr + (1 - alpha) * current_atr
+        out.append(current_atr)
+    return out
+
+
+def linear_regression_slope(values: list[float], period: int = 20) -> list[float]:
+    """Return the trailing linear regression slope of `values` over `period` window.
+    Aligned to the end of `values` (length = len(values) - period + 1)."""
+    n = len(values)
+    if n < period:
+        return []
+
+    out: list[float] = []
+    x = list(range(period))
+    sum_x = sum(x)
+    sum_x2 = sum(xi ** 2 for xi in x)
+    denominator = period * sum_x2 - (sum_x ** 2)
+
+    for i in range(period - 1, n):
+        y = values[i - period + 1 : i + 1]
+        sum_y = sum(y)
+        sum_xy = sum(xi * yi for xi, yi in zip(x, y))
+        numerator = period * sum_xy - sum_x * sum_y
+        slope = numerator / denominator if denominator != 0 else 0.0
+        out.append(slope)
+    return out
+

@@ -50,8 +50,25 @@ def run_scan() -> list[dict]:
         disabled = {r.id for r in configured_rules if not r.enabled}
         rule_weights = {r.id: r.weight for r in configured_rules}
 
-        watched = session.exec(select(WatchedSymbol)).all()
+        # Fetch benchmark candles once per scan pass
+        gspc_candles = []
+        btcusdt_candles = []
         errors: list[str] = []
+        try:
+            gspc_candles = fetch_candles("^GSPC", rng="5y", interval="1d")
+        except Exception as exc:
+            errors.append(f"global benchmark ^GSPC fetch failed: {exc}")
+        try:
+            btcusdt_candles = fetch_klines("BTCUSDT", interval="1d", limit=1000)
+        except Exception as exc:
+            errors.append(f"global benchmark BTCUSDT fetch failed: {exc}")
+
+        benchmarks = {
+            "equity": gspc_candles,
+            "crypto": btcusdt_candles,
+        }
+
+        watched = session.exec(select(WatchedSymbol)).all()
         for w in watched:
             sym = session.get(Symbol, w.symbol_id)
             entry: dict = {"ticker": sym.ticker, "scan_id": scan_id}
@@ -89,6 +106,7 @@ def run_scan() -> list[dict]:
                     p1_min_score=w.p1_score_threshold,
                     funding_rates=funding_rates,
                     rule_weights=rule_weights,
+                    benchmark_candles=benchmarks,
                 )
             except Exception as exc:
                 entry["error"] = f"rule scan failed: {exc}"
@@ -130,6 +148,8 @@ def run_scan() -> list[dict]:
             }
             signal_extra[CONTINUITY_ACTIVE_KEY] = True
             signal_extra[SCAN_ID_KEY] = scan_id
+            if result.stop_loss_price is not None:
+                signal_extra["stop_loss_price"] = result.stop_loss_price
             primary = result.hits[0]
 
             if latest and latest.dedup_key == key and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
