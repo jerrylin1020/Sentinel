@@ -83,8 +83,8 @@ def run_scan() -> list[dict]:
                 future = executor.submit(func, *args, **kwargs)
                 future_to_task[future] = (t_type, t_key)
 
-            # Wait for all futures with a single global timeout of 8.0 seconds
-            done, not_done = wait(future_to_task.keys(), timeout=8.0)
+            # Wait for all futures with a single global timeout of 3.5 seconds
+            done, not_done = wait(future_to_task.keys(), timeout=3.5)
 
             for future in done:
                 t_type, t_key = future_to_task[future]
@@ -150,7 +150,7 @@ def run_scan() -> list[dict]:
                 if latest and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
                     latest.extra = {**(latest.extra or {}), CONTINUITY_ACTIVE_KEY: False}
                     session.add(latest)
-                    session.commit()
+                    session.flush()
                 entry["hits"] = 0
                 summary.append(entry)
                 continue
@@ -193,7 +193,7 @@ def run_scan() -> list[dict]:
                 latest.volume_multiplier = primary.metrics.get("volume_multiplier", 0.0)
                 latest.extra = signal_extra
                 session.add(latest)
-                session.commit()
+                session.flush()
                 entry.update({
                     "signal_id": latest.id,
                     "merged": True,
@@ -227,8 +227,7 @@ def run_scan() -> list[dict]:
                 triggered_at=scanned_at,
             )
             session.add(signal)
-            session.commit()
-            session.refresh(signal)
+            session.flush()
 
             # Only P1/P2 push to notification channels; observe-level is recorded only (§5).
             if result.score.severity in ("p1", "p2"):
@@ -239,7 +238,7 @@ def run_scan() -> list[dict]:
                 if signal.notified_channels:
                     signal.notified_at = signal.triggered_at
                     session.add(signal)
-                    session.commit()
+                    session.flush()
                 entry["notified"] = sent
 
             entry["signal_id"] = signal.id
