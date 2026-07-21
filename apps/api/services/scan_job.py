@@ -43,6 +43,7 @@ def run_scan() -> list[dict]:
         run = ScanRun(started_at=scanned_at)
         session.add(run)
         session.commit()
+        dispatch_tasks = []
 
         # Globally disabled rules (e.g. pruned by backtest) are excluded from
         # every scan, regardless of a symbol's enabled_rules list.
@@ -235,21 +236,41 @@ def run_scan() -> list[dict]:
 
             # Only P1/P2 push to notification channels; observe-level is recorded only (§5).
             if result.score.severity in ("p1", "p2"):
-                sent = dispatch.dispatch(
-                    w.channels, sym.ticker, result.score.severity, result.score.score, detail
-                )
-                signal.notified_channels = [ch for ch, ok in sent.items() if ok]
-                if signal.notified_channels:
-                    signal.notified_at = signal.triggered_at
-                    session.add(signal)
-                    session.flush()
-                entry["notified"] = sent
+                dispatch_tasks.append((signal, w.channels, sym.ticker, result.score.severity, result.score.score, detail, entry))
 
             entry["signal_id"] = signal.id
             entry["severity"] = result.score.severity
             entry["score"] = result.score.score
             entry["detail"] = detail
             summary.append(entry)
+
+        # Execute all Telegram dispatches in parallel with a 3.0s global timeout
+        if dispatch_tasks:
+            dispatch_executor = ThreadPoolExecutor(max_workers=10)
+            try:
+                future_to_dispatch = {}
+                for sig, channels, ticker, sev, scr, det, ent in dispatch_tasks:
+                    fut = dispatch_executor.submit(
+                        dispatch.dispatch, channels, ticker, sev, scr, det
+                    )
+                    future_to_dispatch[fut] = (sig, ent)
+
+                done, not_done = wait(future_to_dispatch.keys(), timeout=3.0)
+
+                for fut in done:
+                    sig, ent = future_to_dispatch[fut]
+                    try:
+                        sent = fut.result()
+                        sig.notified_channels = [ch for ch, ok in sent.items() if ok]
+                        if sig.notified_channels:
+                            sig.notified_at = sig.triggered_at
+                              # session.add is implicit if modified, but safe
+                            session.add(sig)
+                        ent["notified"] = sent
+                    except Exception:
+                        pass
+            finally:
+                dispatch_executor.shutdown(wait=False)
 
         run.finished_at = utcnow()
         run.scanned_symbols = len(watched)
