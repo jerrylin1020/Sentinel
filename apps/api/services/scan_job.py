@@ -71,13 +71,13 @@ def run_scan() -> list[dict]:
             else:
                 tasks.append(("candles", sym.ticker, fetch_candles, (sym.ticker,), {"rng": "5y", "interval": "1d"}))
 
-        # Execute tasks in parallel using a thread pool with a global timeout
         from concurrent.futures import ThreadPoolExecutor, wait
 
         results = {}
         errors: list[str] = []
 
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        executor = ThreadPoolExecutor(max_workers=10)
+        try:
             future_to_task = {}
             for t_type, t_key, func, args, kwargs in tasks:
                 future = executor.submit(func, *args, **kwargs)
@@ -98,6 +98,10 @@ def run_scan() -> list[dict]:
                 t_type, t_key = future_to_task[future]
                 errors.append(f"Fetch timed out for {t_type} {t_key}")
                 results[(t_type, t_key)] = None
+        finally:
+            # Crucial: shutdown with wait=False so we do not block the main thread waiting
+            # for hanging/timed out requests (like Yahoo Finance blocks on Vercel).
+            executor.shutdown(wait=False)
 
         gspc_candles = results.get(("bench", "equity")) or []
         btcusdt_candles = results.get(("bench", "crypto")) or []
