@@ -71,8 +71,8 @@ def run_scan() -> list[dict]:
             else:
                 tasks.append(("candles", sym.ticker, fetch_candles, (sym.ticker,), {"rng": "5y", "interval": "1d"}))
 
-        # Execute tasks in parallel using a thread pool
-        from concurrent.futures import ThreadPoolExecutor
+        # Execute tasks in parallel using a thread pool with a global timeout
+        from concurrent.futures import ThreadPoolExecutor, wait
 
         results = {}
         errors: list[str] = []
@@ -83,13 +83,21 @@ def run_scan() -> list[dict]:
                 future = executor.submit(func, *args, **kwargs)
                 future_to_task[future] = (t_type, t_key)
 
-            for future in future_to_task:
+            # Wait for all futures with a single global timeout of 8.0 seconds
+            done, not_done = wait(future_to_task.keys(), timeout=8.0)
+
+            for future in done:
                 t_type, t_key = future_to_task[future]
                 try:
                     results[(t_type, t_key)] = future.result()
                 except Exception as exc:
                     errors.append(f"Fetch failed for {t_type} {t_key}: {exc}")
                     results[(t_type, t_key)] = None
+
+            for future in not_done:
+                t_type, t_key = future_to_task[future]
+                errors.append(f"Fetch timed out for {t_type} {t_key}")
+                results[(t_type, t_key)] = None
 
         gspc_candles = results.get(("bench", "equity")) or []
         btcusdt_candles = results.get(("bench", "crypto")) or []
