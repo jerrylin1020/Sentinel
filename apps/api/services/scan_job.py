@@ -72,37 +72,41 @@ def run_scan() -> list[dict]:
             else:
                 tasks.append(("candles", sym.ticker, fetch_candles, (sym.ticker,), {"rng": "5y", "interval": "1d"}))
 
-        from concurrent.futures import ThreadPoolExecutor, wait
+        import threading
+        import time
 
         results = {}
         errors: list[str] = []
 
-        executor = ThreadPoolExecutor(max_workers=10)
-        try:
-            future_to_task = {}
-            for t_type, t_key, func, args, kwargs in tasks:
-                future = executor.submit(func, *args, **kwargs)
-                future_to_task[future] = (t_type, t_key)
+        def worker(t_type, t_key, func, args, kwargs):
+            try:
+                results[(t_type, t_key)] = func(*args, **kwargs)
+            except Exception as exc:
+                errors.append(f"Fetch failed for {t_type} {t_key}: {exc}")
+                results[(t_type, t_key)] = None
 
-            # Wait for all futures with a single global timeout of 3.5 seconds
-            done, not_done = wait(future_to_task.keys(), timeout=3.5)
+        threads = []
+        for t_type, t_key, func, args, kwargs in tasks:
+            t = threading.Thread(
+                target=worker,
+                args=(t_type, t_key, func, args, kwargs),
+                daemon=True
+            )
+            threads.append(t)
+            t.start()
 
-            for future in done:
-                t_type, t_key = future_to_task[future]
-                try:
-                    results[(t_type, t_key)] = future.result()
-                except Exception as exc:
-                    errors.append(f"Fetch failed for {t_type} {t_key}: {exc}")
-                    results[(t_type, t_key)] = None
+        # Wait for all threads with a single global timeout of 3.5 seconds
+        start_time = time.time()
+        while time.time() - start_time < 3.5:
+            if not any(t.is_alive() for t in threads):
+                break
+            time.sleep(0.05)
 
-            for future in not_done:
-                t_type, t_key = future_to_task[future]
+        # Any task that did not finish is marked as timed out
+        for t_type, t_key, func, args, kwargs in tasks:
+            if (t_type, t_key) not in results:
                 errors.append(f"Fetch timed out for {t_type} {t_key}")
                 results[(t_type, t_key)] = None
-        finally:
-            # Crucial: shutdown with wait=False so we do not block the main thread waiting
-            # for hanging/timed out requests (like Yahoo Finance blocks on Vercel).
-            executor.shutdown(wait=False)
 
         gspc_candles = results.get(("bench", "equity")) or []
         btcusdt_candles = results.get(("bench", "crypto")) or []
@@ -246,31 +250,33 @@ def run_scan() -> list[dict]:
 
         # Execute all Telegram dispatches in parallel with a 3.0s global timeout
         if dispatch_tasks:
-            dispatch_executor = ThreadPoolExecutor(max_workers=10)
-            try:
-                future_to_dispatch = {}
-                for sig, channels, ticker, sev, scr, det, ent in dispatch_tasks:
-                    fut = dispatch_executor.submit(
-                        dispatch.dispatch, channels, ticker, sev, scr, det
-                    )
-                    future_to_dispatch[fut] = (sig, ent)
+            def dispatch_worker(sig, channels, ticker, sev, scr, det, ent):
+                try:
+                    sent = dispatch.dispatch(channels, ticker, sev, scr, det)
+                    sig.notified_channels = [ch for ch, ok in sent.items() if ok]
+                    if sig.notified_channels:
+                        sig.notified_at = sig.triggered_at
+                        session.add(sig)
+                    ent["notified"] = sent
+                except Exception:
+                    pass
 
-                done, not_done = wait(future_to_dispatch.keys(), timeout=3.0)
+            dispatch_threads = []
+            for sig, channels, ticker, sev, scr, det, ent in dispatch_tasks:
+                t = threading.Thread(
+                    target=dispatch_worker,
+                    args=(sig, channels, ticker, sev, scr, det, ent),
+                    daemon=True
+                )
+                dispatch_threads.append(t)
+                t.start()
 
-                for fut in done:
-                    sig, ent = future_to_dispatch[fut]
-                    try:
-                        sent = fut.result()
-                        sig.notified_channels = [ch for ch, ok in sent.items() if ok]
-                        if sig.notified_channels:
-                            sig.notified_at = sig.triggered_at
-                              # session.add is implicit if modified, but safe
-                            session.add(sig)
-                        ent["notified"] = sent
-                    except Exception:
-                        pass
-            finally:
-                dispatch_executor.shutdown(wait=False)
+            # Wait for all dispatches to finish with a global timeout of 3.0 seconds
+            start_time = time.time()
+            while time.time() - start_time < 3.0:
+                if not any(t.is_alive() for t in dispatch_threads):
+                    break
+                time.sleep(0.05)
 
         run.finished_at = utcnow()
         run.scanned_symbols = len(watched)
