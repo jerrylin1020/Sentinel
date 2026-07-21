@@ -15,6 +15,8 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from apps.api.config import settings
 from apps.api.services.scan_job import run_scan
 
+import traceback
+
 router = APIRouter(prefix="/cron", tags=["cron"])
 
 
@@ -29,6 +31,10 @@ def trigger_scan(
     if settings.cron_secret not in (x_cron_secret, token):
         raise HTTPException(401, "invalid or missing cron secret")
 
-    summary = run_scan()
-    hits = sum(1 for e in summary if "signal_id" in e)
-    return {"scanned": len(summary), "signals": hits, "detail": summary}
+    try:
+        summary = run_scan()
+        hits = sum(1 for e in summary if "signal_id" in e)
+        return {"scanned": len(summary), "signals": hits, "detail": summary}
+    except Exception as exc:
+        tb = traceback.format_exc()
+        raise HTTPException(status_code=500, detail={"error": str(exc), "traceback": tb})
