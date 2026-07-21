@@ -136,7 +136,9 @@ def run_scan() -> list[dict]:
                 .order_by(Signal.triggered_at.desc())
             ).first()
 
-            if not result.hits:
+            db_hits = [h for h in result.hits if h.rule_id != "regime_kill"]
+
+            if not db_hits:
                 if latest and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
                     latest.extra = {**(latest.extra or {}), CONTINUITY_ACTIVE_KEY: False}
                     session.add(latest)
@@ -145,10 +147,10 @@ def run_scan() -> list[dict]:
                 summary.append(entry)
                 continue
 
-            detail = "; ".join(h.detail for h in result.hits)
+            detail = "; ".join(h.detail for h in db_hits)
             key = dedup_key(
                 sym.ticker,
-                [h.rule_id for h in result.hits],
+                [h.rule_id for h in db_hits],
                 result.score.severity,
                 result.score.score,
                 result.score.components,
@@ -160,13 +162,13 @@ def run_scan() -> list[dict]:
                     "trigger_severity": h.severity,
                     "weight": rule_weights.get(h.rule_id, 1.0),
                 }
-                for h in result.hits
+                for h in db_hits
             }
             signal_extra[CONTINUITY_ACTIVE_KEY] = True
             signal_extra[SCAN_ID_KEY] = scan_id
             if result.stop_loss_price is not None:
                 signal_extra["stop_loss_price"] = result.stop_loss_price
-            primary = result.hits[0]
+            primary = db_hits[0]
 
             if latest and latest.dedup_key == key and (latest.extra or {}).get(CONTINUITY_ACTIVE_KEY):
                 previous_extra = latest.extra or {}

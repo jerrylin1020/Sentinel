@@ -151,7 +151,10 @@ def scan_symbol(
         else:
             hits.append(hit)
 
-    # If breakouts were blocked, add a special notice hit to explain why
+    score_kwargs = {} if p1_min_score is None else {"p1_min_score": p1_min_score}
+    score_result = score_hits(hits, rule_weights=rule_weights, **score_kwargs)
+
+    # If breakouts were blocked, add a special notice hit to explain why (after scoring)
     if blocked_breakouts:
         reasons = "; ".join(regime_details)
         hits.append(
@@ -169,9 +172,6 @@ def scan_symbol(
         if "tight_low" in hit.metrics:
             stop_loss_price = hit.metrics["tight_low"]
             break
-
-    score_kwargs = {} if p1_min_score is None else {"p1_min_score": p1_min_score}
-    score_result = score_hits(hits, rule_weights=rule_weights, **score_kwargs)
 
     return ScanResult(
         ticker=ticker,
