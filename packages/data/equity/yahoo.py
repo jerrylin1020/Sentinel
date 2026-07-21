@@ -19,7 +19,7 @@ def fetch_candles(symbol: str, rng: str = "3mo", interval: str = "1d") -> list[C
         _URL.format(symbol=symbol),
         params={"range": rng, "interval": interval},
         headers={"User-Agent": "Mozilla/5.0 (Sentinel scanner)"},
-        timeout=10.0,
+        timeout=3.0,
     )
     resp.raise_for_status()
     result = resp.json()["chart"]["result"][0]

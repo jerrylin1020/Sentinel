@@ -29,7 +29,7 @@ def send(subject: str, html: str, *, api_key: str | None = None, to: str | None 
             "subject": subject,
             "html": html,
         },
-        timeout=10.0,
+        timeout=2.0,
     )
     resp.raise_for_status()
     return True

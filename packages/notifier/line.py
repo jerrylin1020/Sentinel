@@ -21,7 +21,7 @@ def send(text: str, *, token: str | None = None) -> bool:
         "https://notify-api.line.me/api/notify",
         headers={"Authorization": f"Bearer {token}"},
         data={"message": text},
-        timeout=10.0,
+        timeout=2.0,
     )
     resp.raise_for_status()
     return True

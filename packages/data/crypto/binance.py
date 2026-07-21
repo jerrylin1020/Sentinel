@@ -24,7 +24,7 @@ def fetch_klines(symbol: str, interval: str = "1d", limit: int = 50) -> list[Can
             resp = httpx.get(
                 f"{host}/api/v3/klines",
                 params={"symbol": symbol, "interval": interval, "limit": limit},
-                timeout=10.0,
+                timeout=3.0,
             )
             resp.raise_for_status()
             return [_to_candle(row) for row in resp.json()]
@@ -46,7 +46,7 @@ def fetch_funding_rate(symbol: str, limit: int = 100) -> list[FundingRatePoint]:
             resp = httpx.get(
                 f"{host}/fapi/v1/fundingRate",
                 params={"symbol": symbol, "limit": limit},
-                timeout=10.0,
+                timeout=3.0,
             )
             resp.raise_for_status()
             return [_to_funding_point(row) for row in resp.json()]
